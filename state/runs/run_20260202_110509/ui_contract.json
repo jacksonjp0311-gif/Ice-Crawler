@@ -1,0 +1,8 @@
+{
+  "ui_reads_only": [
+    "artifact_manifest.json",
+    "crystal_index.json"
+  ],
+  "ui_never_runs_git": true,
+  "engine_authoritative": true
+}

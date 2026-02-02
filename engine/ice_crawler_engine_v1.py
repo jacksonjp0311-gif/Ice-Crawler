@@ -1,124 +1,93 @@
-﻿import os, sys, json, hashlib, shutil, subprocess, datetime, time
+﻿import os, sys, json, hashlib, shutil, subprocess, datetime, time, stat
 
 def utc_now():
-    return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+"Z"
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 def sha256_file(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024*1024), b""):
+    h=hashlib.sha256()
+    with open(path,"rb") as f:
+        for chunk in iter(lambda:f.read(1024*1024), b""):
             h.update(chunk)
     return h.hexdigest()
 
-def run(cmd, cwd=None):
-    p = subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    return p.returncode, p.stdout
+def run(cmd,cwd=None):
+    p=subprocess.run(cmd,cwd=cwd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)
+    return p.returncode,p.stdout
 
 def ensure_dir(p):
-    os.makedirs(p, exist_ok=True)
+    os.makedirs(p,exist_ok=True)
 
-# ─────────────────────────────────────────────
-# RESIDUE PURGE (CANON PATCH — WINDOWS SAFE)
-# ─────────────────────────────────────────────
-def purge_temp(temp_dir, tries=6):
+def _on_rm_error(func,path,exc):
+    try:
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception:
+        pass
+
+def purge_dir(path,tries=10):
     for k in range(tries):
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        time.sleep(0.25)
-        if not os.path.exists(temp_dir):
+        try:
+            shutil.rmtree(path,onerror=_on_rm_error)
+        except Exception:
+            pass
+        time.sleep(0.3*(k+1))
+        if not os.path.exists(path):
             return True
-    return False
+    return not os.path.exists(path)
 
 def main():
-    if len(sys.argv) < 6:
-        print("usage: engine.py <target_repo> <state_run> <temp_dir> <max_files> <max_kb>")
-        return 2
+    repo,state,temp,max_files,max_kb = sys.argv[1],sys.argv[2],sys.argv[3],int(sys.argv[4]),float(sys.argv[5])
+    ensure_dir(state)
 
-    target_repo = sys.argv[1]
-    state_run   = sys.argv[2]
-    temp_dir    = sys.argv[3]
-    max_files   = int(sys.argv[4])
-    max_kb      = float(sys.argv[5])
+    with open(os.path.join(state,"frost_summary.json"),"w") as f:
+        json.dump({"ts":utc_now(),"repo":repo},f,indent=2)
 
-    ensure_dir(state_run)
+    if os.path.exists(temp):
+        purge_dir(temp)
 
-    # ── FROST
-    frost = {"ts": utc_now(), "repo": target_repo,
-             "max_files": max_files, "max_kb": max_kb}
+    rc,_ = run(["git","clone","--depth=1",repo,temp])
+    if rc!=0: raise RuntimeError("git clone failed")
 
-    with open(os.path.join(state_run,"frost_summary.json"),"w",encoding="utf-8") as f:
-        json.dump(frost,f,indent=2)
-
-    # ── GLACIER
-    if os.path.exists(temp_dir):
-        purge_temp(temp_dir)
-
-    rc,out = run(["git","clone","--depth=1",target_repo,temp_dir])
-    if rc != 0:
-        raise RuntimeError("git clone failed")
-
-    # ── CRYSTAL Π
-    bundle = os.path.join(state_run,"artifact")
+    bundle=os.path.join(state,"artifact")
     ensure_dir(bundle)
 
-    rc,files_out = run(["git","-C",temp_dir,"ls-files"])
-    if rc != 0:
-        raise RuntimeError("git ls-files failed")
-
-    allow_ext = (".py",".ps1",".c",".h",".md",".txt",".json",".yml",".yaml")
-
+    rc,files = run(["git","-C",temp,"ls-files"])
     picked=[]
-    for line in files_out.splitlines():
-        p=line.strip()
-        if p.lower().endswith(allow_ext):
-            picked.append(p)
-        if len(picked) >= max_files:
-            break
+    for line in files.splitlines():
+        if len(picked)>=max_files: break
+        if line.lower().endswith((".py",".ps1",".c",".h",".md",".txt",".json")):
+            picked.append(line)
 
     manifest=[]
     for rel in picked:
-        src=os.path.join(temp_dir,rel)
-        if not os.path.exists(src):
-            continue
+        src=os.path.join(temp,rel)
+        if not os.path.exists(src): continue
+        if os.path.getsize(src)/1024.0>max_kb: continue
 
-        size_kb=os.path.getsize(src)/1024.0
-        if size_kb > max_kb:
-            continue
-
-        flat=rel.replace("\\","_").replace("/","_")
+        flat=rel.replace("/","_").replace("\\","_")
         dst=os.path.join(bundle,flat)
         shutil.copy2(src,dst)
+        manifest.append({"path":rel,"sha256":sha256_file(dst)})
 
-        manifest.append({
-            "path": rel,
-            "kb": round(size_kb,2),
-            "sha256": sha256_file(dst)
-        })
-
-    with open(os.path.join(state_run,"artifact_manifest.json"),"w",encoding="utf-8") as f:
+    with open(os.path.join(state,"artifact_manifest.json"),"w") as f:
         json.dump(manifest,f,indent=2)
 
-    with open(os.path.join(state_run,"crystal_index.json"),"w",encoding="utf-8") as f:
+    with open(os.path.join(state,"crystal_index.json"),"w") as f:
         json.dump({"ts":utc_now(),"count":len(manifest)},f,indent=2)
 
-    # ── RESIDUE LOCK (ρ_post = ∅)  [PATCHED]
-    ok = purge_temp(temp_dir)
-    if not ok:
-        raise RuntimeError("Residue violation: temp still exists")
+    with open(os.path.join(state,"ui_contract.json"),"w") as f:
+        json.dump({
+          "ui_reads_only":["artifact_manifest.json","crystal_index.json"],
+          "engine_authoritative":True
+        },f,indent=2)
 
-    with open(os.path.join(state_run,"residue_truth.json"),"w",encoding="utf-8") as f:
+    ok=purge_dir(temp)
+    if not ok: raise RuntimeError("Residue violation: temp still exists")
+
+    with open(os.path.join(state,"residue_truth.json"),"w") as f:
         json.dump({"ts":utc_now(),"rho_post":"empty"},f,indent=2)
 
     return 0
 
 if __name__=="__main__":
-    try:
-        raise SystemExit(main())
-    except Exception as e:
-        try:
-            state_run=sys.argv[2]
-            with open(os.path.join(state_run,"engine_failure.json"),"w",encoding="utf-8") as f:
-                json.dump({"ts":utc_now(),"error":str(e)},f,indent=2)
-        except Exception:
-            pass
-        print("ENGINE_ERROR:",str(e))
-        raise
+    raise SystemExit(main())
