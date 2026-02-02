@@ -1,12 +1,14 @@
 ﻿import os, sys, json, shutil, subprocess, datetime, time, stat
-from frost import frost_telemetry, glacier_clone
-from glacier import glacier_select, glacier_emit
+
+from frost   import frost_telemetry
+from glacier import glacier_clone, glacier_select, glacier_emit
 from crystal import sha256_file, sha256_text, crystal_seal
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
-def ensure_dir(p): os.makedirs(p, exist_ok=True)
+def ensure_dir(p):
+    os.makedirs(p, exist_ok=True)
 
 def run(cmd, cwd=None):
     p=subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -36,71 +38,57 @@ def purge_dir_strict(path, tries=40, sleep_s=0.25):
         time.sleep(sleep_s)
     return (not os.path.exists(path))
 
-def emit_ui(state_run: str, event: str, data=None):
+def emit_ui(state_run: str, event: str, payload=None):
     p = os.path.join(state_run,"ui_events.jsonl")
-    obj = {"ts":utc_now(),"event":event}
-    if data is not None:
-        obj["data"] = data
+    rec = {"ts":utc_now(),"event":event}
+    if payload is not None:
+        rec["payload"]=payload
     with open(p,"a",encoding="utf-8") as f:
-        f.write(json.dumps(obj)+"\n")
+        f.write(json.dumps(rec, ensure_ascii=False)+"\n")
 
-def write_text(path, s):
-    with open(path,"w",encoding="utf-8") as f:
-        f.write(s)
-
-def ai_handoff_emit(state_run: str, repo: str, head: str, manifest):
-    # Local-only: AI package inside run fossil
-    ai_dir = os.path.join(state_run,"ai_handoff")
+def ai_handoff_emit(state_run: str, manifest, repo_url: str, repo_head: str):
+    ai_dir = os.path.join(state_run, "ai_handoff")
     ensure_dir(ai_dir)
 
-    # compact manifest for models
     compact = {
         "ts": utc_now(),
-        "repo": repo,
-        "head": head,
-        "count": len(manifest),
-        "files": [{"path":m["path"],"sha256":m["sha256"]} for m in manifest]
+        "repo": repo_url,
+        "repo_head": repo_head,
+        "file_count": len(manifest),
+        "files": [{"path":m["path"], "sha256":m["sha256"]} for m in manifest[:50]]
     }
-    with open(os.path.join(ai_dir,"manifest_compact.json"),"w",encoding="utf-8") as f:
+
+    manifest_compact = os.path.join(ai_dir, "manifest_compact.json")
+    with open(manifest_compact,"w",encoding="utf-8") as f:
         json.dump(compact, f, indent=2)
 
-    # root seal = sha256 of canonical json string (sorted keys)
-    canon_str = json.dumps(compact, sort_keys=True, separators=(",",":"))
-    root_seal = sha256_text(canon_str)
-    write_text(os.path.join(ai_dir,"root_seal.txt"), "ROOT_SEAL_SHA256 = "+root_seal+"\n")
+    # Root seal binds: head + manifest_compact hash
+    mc_hash = sha256_file(manifest_compact)
+    root_seal = sha256_text(f"{repo_head}|{mc_hash}|ICE_CRAWLER_V4_0P")
 
-    # prompt-ready drop-in
-    pr = []
-    pr.append("❄ ICE-CRAWLER AI HANDOFF — CRYSTAL PACK")
-    pr.append("")
-    pr.append(f"Repo: {repo}")
-    pr.append(f"Head: {head}")
-    pr.append(f"Run:  {state_run}")
-    pr.append("Residue: ∅")
-    pr.append("")
-    pr.append("RULES")
-    pr.append("- Analyze ONLY the sealed artifacts in this ai_handoff folder and the run artifact bundle.")
-    pr.append("- Do NOT request the full repo; this is a bounded projection.")
-    pr.append("")
-    pr.append("FILES")
-    pr.append("- manifest_compact.json")
-    pr.append("- root_seal.txt")
-    pr.append("")
-    pr.append("MANIFEST (first 25)")
-    for m in manifest[:25]:
-        pr.append(f"- {m['path']}  ({m['sha256']})")
-    if len(manifest) > 25:
-        pr.append(f"... +{len(manifest)-25} more")
-    pr.append("")
-    pr.append("TASK")
-    pr.append("Extract invariants, summarize architecture, and propose next steps.")
-    write_text(os.path.join(ai_dir,"PROMPT_READY.md"), "\n".join(pr)+"\n")
+    with open(os.path.join(ai_dir,"root_seal.txt"),"w",encoding="utf-8") as f:
+        f.write(root_seal + "\n")
+        f.write(f"repo_head={repo_head}\n")
+        f.write(f"manifest_compact_sha256={mc_hash}\n")
 
-    # proof token for UI
-    write_text(os.path.join(state_run,"ai_handoff_path.txt"), ai_dir+"\n")
+    prompt_ready = os.path.join(ai_dir, "PROMPT_READY.md")
+    with open(prompt_ready,"w",encoding="utf-8") as f:
+        f.write("# ICE-CRAWLER AI HANDOFF (PROMPT READY)\n\n")
+        f.write("You are given a sealed, bounded repo fossil.\n\n")
+        f.write("Rules:\n")
+        f.write("- Treat the bundle as read-only input.\n")
+        f.write("- Use manifest_compact.json + root_seal.txt as integrity anchors.\n")
+        f.write("- Do NOT assume missing files exist.\n\n")
+        f.write("Deliver:\n")
+        f.write("- A concise technical summary.\n")
+        f.write("- Risks / sensitive areas.\n")
+        f.write("- Suggested next actions.\n")
+
+    # Proof token for UI
+    with open(os.path.join(state_run,"ai_handoff_path.txt"),"w",encoding="utf-8") as f:
+        f.write(ai_dir)
+
     emit_ui(state_run, "AI_HANDOFF_READY", {"ai_handoff": ai_dir, "root_seal": root_seal})
-
-    return ai_dir, root_seal
 
 def main():
     repo      = sys.argv[1]
@@ -112,6 +100,8 @@ def main():
     ensure_dir(state_run)
     residue_path = os.path.join(state_run,"residue_truth.json")
 
+    emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
+
     # Frost: telemetry-only
     frost = frost_telemetry(repo)
     with open(os.path.join(state_run,"frost_summary.json"),"w",encoding="utf-8") as f:
@@ -122,7 +112,7 @@ def main():
         if os.path.exists(temp_dir):
             purge_dir_strict(temp_dir)
 
-        # Glacier: ephemeral clone
+        # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
         glacier_clone(repo, temp_dir)
 
@@ -139,45 +129,44 @@ def main():
         manifest=[]
         for rel in picked:
             src=os.path.join(temp_dir, rel)
-            if not os.path.exists(src): continue
-            if os.path.getsize(src)/1024.0 > max_kb: continue
+            if not os.path.exists(src):
+                continue
+            if os.path.getsize(src)/1024.0 > max_kb:
+                continue
 
             flat=rel.replace("/","_")
             dst=os.path.join(bundle, flat)
-            shutil.copy2(src,dst)
+            shutil.copy2(src, dst)
 
             manifest.append({"path":rel,"sha256":sha256_file(dst)})
 
         manifest = sorted(manifest, key=lambda x: x["path"])
 
         with open(os.path.join(state_run,"artifact_manifest.json"),"w",encoding="utf-8") as f:
-            json.dump(manifest,f,indent=2)
+            json.dump(manifest, f, indent=2)
 
         with open(os.path.join(state_run,"crystal_index.json"),"w",encoding="utf-8") as f:
-            json.dump({"ts":utc_now(),"count":len(manifest)},f,indent=2)
+            json.dump({"ts":utc_now(),"count":len(manifest)}, f, indent=2)
 
         crystal_seal(state_run, manifest)
 
-        # UI contract extended
+        # UI contract (extended)
         with open(os.path.join(state_run,"ui_contract.json"),"w",encoding="utf-8") as f:
             json.dump({
                 "ui_reads_only":[
                     "artifact_manifest.json",
                     "artifact_hashes.json",
                     "crystal_index.json",
-                    "engine_registry.json",
                     "ui_events.jsonl",
                     "ai_handoff_path.txt"
                 ],
                 "ui_never_runs_git": True
             }, f, indent=2)
 
-        emit_ui(state_run, "CRYSTAL_VERIFIED", {"files": len(manifest)})
+        emit_ui(state_run, "CRYSTAL_VERIFIED", {"count": len(manifest)})
 
-        # NEW: AI handoff bundle + seal
-        emit_ui(state_run, "AI_HANDOFF_PENDING")
-        ai_dir, seal = ai_handoff_emit(state_run, repo, frost.get("head","unknown"), manifest)
-        emit_ui(state_run, "AI_HANDOFF_SEALED", {"root_seal": seal})
+        # AI handoff (restored)
+        ai_handoff_emit(state_run, manifest, repo, frost.get("head","unknown"))
 
     finally:
         purge_ok = purge_dir_strict(temp_dir)
@@ -189,6 +178,7 @@ def main():
         raise RuntimeError("Residue violation")
 
     emit_ui(state_run, "RESIDUE_EMPTY_LOCK")
+    emit_ui(state_run, "RUN_COMPLETE")
     return 0
 
 if __name__=="__main__":
