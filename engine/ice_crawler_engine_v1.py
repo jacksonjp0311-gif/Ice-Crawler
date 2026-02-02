@@ -36,6 +36,9 @@ def purge_dir(path,tries=10):
     return not os.path.exists(path)
 
 def main():
+    if len(sys.argv)<6:
+        raise RuntimeError("Usage: repo state temp max_files max_kb")
+
     repo,state,temp,max_files,max_kb = sys.argv[1],sys.argv[2],sys.argv[3],int(sys.argv[4]),float(sys.argv[5])
     ensure_dir(state)
 
@@ -78,7 +81,8 @@ def main():
     with open(os.path.join(state,"ui_contract.json"),"w") as f:
         json.dump({
           "ui_reads_only":["artifact_manifest.json","crystal_index.json"],
-          "engine_authoritative":True
+          "engine_authoritative":True,
+          "ui_never_runs_git":True
         },f,indent=2)
 
     ok=purge_dir(temp)
