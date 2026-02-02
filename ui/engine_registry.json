@@ -1,10 +1,15 @@
 ﻿{
     "orchestrator":  "engine/orchestrator.py",
+    "ui_reads_only":  [
+                          "ui/engine_registry.json",
+                          "ui/latest_run_path.txt",
+                          "state/runs/\u003clatest\u003e/{artifact_manifest.json,artifact_hashes.json,crystal_index.json,ui_events.jsonl}"
+                      ],
     "engines":  [
                     "engine/frost.py",
                     "engine/glacier.py",
                     "engine/crystal.py"
                 ],
-    "v":  "3.7P",
-    "ts":  "2026-02-02T22:16:46Z"
+    "v":  "3.8P",
+    "ts":  "2026-02-02T22:26:30Z"
 }
