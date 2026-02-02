@@ -78,9 +78,10 @@ def main():
     with open(os.path.join(state,"crystal_index.json"),"w") as f:
         json.dump({"ts":utc_now(),"count":len(manifest)},f,indent=2)
 
+    # ✅ CANON FIX: valid JSON contract (no duplicates, no missing commas)
     with open(os.path.join(state,"ui_contract.json"),"w") as f:
         json.dump({
-          "ui_reads_only":["artifact_manifest.json","crystal_index.json"],
+          "ui_reads_only":["artifact_manifest.json","crystal_index.json","ui_contract.json"],
           "engine_authoritative":True,
           "ui_never_runs_git":True
         },f,indent=2)
