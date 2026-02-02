@@ -1,0 +1,14 @@
+﻿{
+    "role_engines":  [
+                         "engine/roles/frost_engine.py",
+                         "engine/roles/glacier_engine.py",
+                         "engine/roles/crystal_engine.py"
+                     ],
+    "ui_reads_only":  [
+                          "artifact_manifest.json",
+                          "crystal_index.json",
+                          "engine_registry.json"
+                      ],
+    "active_engine":  "engine/active/engine_active.py",
+    "ts":  "2026-02-02T21:30:41Z"
+}
