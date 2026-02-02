@@ -1,0 +1,247 @@
+﻿[
+    {
+        "path":  ".github/CONTRIBUTING.md",
+        "sha256":  "365D8E1C389841AD9100493EC4D4C2CC2C2CB2D2ADEACC0E94840FE04231189D",
+        "kb":  1.09
+    },
+    {
+        "path":  ".github/PULL_REQUEST_TEMPLATE.md",
+        "sha256":  "EFF4CCA73209FA7C618F47E63A841641ACF963330865449456E3E2961C699E53",
+        "kb":  0.59
+    },
+    {
+        "path":  "CODE_OF_CONDUCT.md",
+        "sha256":  "DEC4EAE84AC5C6B728AC6F1716AC7E7418B4A5003D62E3D630DD1D1BF60E554D",
+        "kb":  5.99
+    },
+    {
+        "path":  "README.md",
+        "sha256":  "DB8A5050BC993EFCAEE2D8EB0B8B551F3E9B51257C49DE9CDE09531268BA2FD0",
+        "kb":  3.65
+    },
+    {
+        "path":  "SECURITY.md",
+        "sha256":  "D731057101DFD6895F82045592CE158CD534566702DFE76F01A730867C913BF4",
+        "kb":  1.98
+    },
+    {
+        "path":  "abspath.c",
+        "sha256":  "E542759D5C20220852BFC9DA628E181F9BB94573A7B79ECF6ABD4DE64FB27034",
+        "kb":  8.71
+    },
+    {
+        "path":  "abspath.h",
+        "sha256":  "DC714D701ADF1CD177E3D27D91FE88346CFCC56B289A52A09D834DB90CEB303F",
+        "kb":  1.84
+    },
+    {
+        "path":  "add-interactive.c",
+        "sha256":  "C73B4F488D760D64D1FC35BFED397E36551CD4069E3E338858C5797A8132161F",
+        "kb":  34.33
+    },
+    {
+        "path":  "add-interactive.h",
+        "sha256":  "A2AA6A89626257126C870D71516F5E9B9BD22F23BE7FB0DE8844917374B46853",
+        "kb":  1.36
+    },
+    {
+        "path":  "add-patch.c",
+        "sha256":  "0A255F25B7F60D6A17F80600597D0234A338F8993DA67695350AE633F466C1D3",
+        "kb":  55.05
+    },
+    {
+        "path":  "advice.c",
+        "sha256":  "1FF9C9E6A9673125FEC064FFEF255CCA5DC2E5FFC3D3EB66EA1648F758BE56E4",
+        "kb":  10
+    },
+    {
+        "path":  "advice.h",
+        "sha256":  "EC6775B845A98F2B585847D0E7B403F62663C26A68E65D02E1D7E9FA1EA4A7A5",
+        "kb":  2.59
+    },
+    {
+        "path":  "alias.c",
+        "sha256":  "4A77BF3C84045C75B1B9A33F3AC840FFF9FF9EDC2E79CBEA57ADE80E952591F6",
+        "kb":  2.92
+    },
+    {
+        "path":  "alias.h",
+        "sha256":  "DF6365BC1BA340399FC7E65CD2F7631E05DE52B4ECC6CC859A16800208B2E5F3",
+        "kb":  0.45
+    },
+    {
+        "path":  "alloc.c",
+        "sha256":  "A678E2E2C919FF1E87D73A97D32513B7A7933A19DCC201FCF08B98FA04B05308",
+        "kb":  2.91
+    },
+    {
+        "path":  "alloc.h",
+        "sha256":  "1BF175E1314402E524AD4C05CF5CDD436215DBCDE258E69EBD8FACF05A73D93B",
+        "kb":  0.5
+    },
+    {
+        "path":  "apply.h",
+        "sha256":  "6F70EB44E1247311BB807B76C0F1A5B49CB81701D0E35338455581FC0196127B",
+        "kb":  5.42
+    },
+    {
+        "path":  "archive-tar.c",
+        "sha256":  "041CA1DDA4595E69EDFD68727D86AD58ECBAC720EF6F5C1F9A749C997C84E598",
+        "kb":  14.43
+    },
+    {
+        "path":  "archive-zip.c",
+        "sha256":  "6142D5467289086002FA1A60031D071A1E818BE33414733F7470C4D9F9BE45E3",
+        "kb":  18.19
+    },
+    {
+        "path":  "archive.c",
+        "sha256":  "D612ABC545E474F3742656FF6109159C46564926ACC4DE4D4E498BB4E73EF599",
+        "kb":  22.42
+    },
+    {
+        "path":  "archive.h",
+        "sha256":  "C3BEBDE6401D24CDDF1BF1DA9F559B3BD61010913D62B31FD31E8026BE6CDE01",
+        "kb":  1.6
+    },
+    {
+        "path":  "attr.c",
+        "sha256":  "58705AE2C7210DB53655A3A00B3ABD649D79FA9C29B346E9FF26CC7EB7D1ABE0",
+        "kb":  35.54
+    },
+    {
+        "path":  "attr.h",
+        "sha256":  "A86E3F1743B0C87150DC0D475F58D45EBA5D6C627A8BBB2F5795BE0A960B6628",
+        "kb":  8.37
+    },
+    {
+        "path":  "banned.h",
+        "sha256":  "98F1D498733E94B619627B007FCE2E7FFFEE67EAD99BD909674482665FD6B9D9",
+        "kb":  1.15
+    },
+    {
+        "path":  "base85.c",
+        "sha256":  "E1B4C133E35322EDE7D645052782CC48A4DD1F4E405E04F453E3CAA493705FCD",
+        "kb":  2.92
+    },
+    {
+        "path":  "base85.h",
+        "sha256":  "0343F9823EF538911E8E39F93B8A7B39F0BE42FE284B2333C336804AD88583A8",
+        "kb":  0.18
+    },
+    {
+        "path":  "bisect.c",
+        "sha256":  "19C3135245E6BDFE31EEE915E5FA8BAE3D3AB4FA65B65CFEE47E8646A221B94E",
+        "kb":  32.15
+    },
+    {
+        "path":  "bisect.h",
+        "sha256":  "1E35501F2A3F835728AD3F38333FF372075B40D88EE95E34AB51B81B2C2AE0BE",
+        "kb":  2.37
+    },
+    {
+        "path":  "blame.c",
+        "sha256":  "C9E515CCBF9432F545BC473DAA33DEC33D164CA831CD3330C134D993AD8B0CF1",
+        "kb":  87.15
+    },
+    {
+        "path":  "blame.h",
+        "sha256":  "43D01F98A9269372C8F6D1961D530F06F69940CDF44EA136EBE33325F4A5A06D",
+        "kb":  5.68
+    },
+    {
+        "path":  "blob.c",
+        "sha256":  "CA76028EED1B3ABD9D98AF520CA2BBB063F21860BF84D64D78896C221440F963",
+        "kb":  0.41
+    },
+    {
+        "path":  "blob.h",
+        "sha256":  "EDD58207817611D68836A83062BB4FBB34CB1C7F8CF0FF5B3E6D9778AEBE7C24",
+        "kb":  0.66
+    },
+    {
+        "path":  "block-sha1/sha1.c",
+        "sha256":  "ECE502FD2535A13F7605A8C6CA1C0F1CB2A91BBE3E99AE6D8B7F2A40B2692FC2",
+        "kb":  6.87
+    },
+    {
+        "path":  "block-sha1/sha1.h",
+        "sha256":  "E65FEF3887C6FBCBA06B5ACFA118B133B6EC9895BFDB78C35416DF00B03D1CD0",
+        "kb":  0.74
+    },
+    {
+        "path":  "bloom.c",
+        "sha256":  "756B1A49426681BFC36DEFB6BEE9A01AE75AEEAA8370D0775A9583AE374E9188",
+        "kb":  15.39
+    },
+    {
+        "path":  "bloom.h",
+        "sha256":  "A1941982289F458A9138114D5FC7489D2702D27F001C24A9B09D75C98B63DA7F",
+        "kb":  5.08
+    },
+    {
+        "path":  "branch.c",
+        "sha256":  "1533BEE1A9F8C2917F5DDF71F0F1CFD118BFC8862BF5F326FDD15A4C9528B316",
+        "kb":  25.66
+    },
+    {
+        "path":  "branch.h",
+        "sha256":  "5B96F7EBF1762AD65C624C9D28D506AFBD268714B34BC96585CB8DFDB23F1931",
+        "kb":  5.37
+    },
+    {
+        "path":  "builtin.h",
+        "sha256":  "FE2FA2A8348AF71E07FBD1CB96964CE88F6A5584B90EDEF195686BBA72FC8313",
+        "kb":  17.74
+    },
+    {
+        "path":  "builtin/add.c",
+        "sha256":  "69B43E816C720AF4F1EB9390ED61391FBE5BB67D776AAD05653023B4E4EFE194",
+        "kb":  17.87
+    },
+    {
+        "path":  "builtin/am.c",
+        "sha256":  "05A53151464D1B51B83685FD086622151E9803ABBD7084CEC46AB53398E1B89F",
+        "kb":  68.39
+    },
+    {
+        "path":  "builtin/annotate.c",
+        "sha256":  "9A17EF32C02DFBEB18EA5148676B8A71D2DA35C990962EA781F79EC43192E7B6",
+        "kb":  0.76
+    },
+    {
+        "path":  "builtin/apply.c",
+        "sha256":  "32F14AFEE432C67661A4E5DB7220513FC683961E6448B55D5A5816945F56C3ED",
+        "kb":  1.15
+    },
+    {
+        "path":  "builtin/archive.c",
+        "sha256":  "010BF8AF905D7CADC62FE5A5EE0D06B1C2128B836BF38E6BE0240AB4DB0191F3",
+        "kb":  3.15
+    },
+    {
+        "path":  "builtin/backfill.c",
+        "sha256":  "FB3A4DC2461DA5C54DE108EEC73631304587BAB32A0B07587E0A9DF20691117E",
+        "kb":  3.54
+    },
+    {
+        "path":  "builtin/bisect.c",
+        "sha256":  "4C3B24BE33E6F6E3EE989D6F011E9DDE5FFF6B94CC6A3208F3CE45F61244B518",
+        "kb":  38.79
+    },
+    {
+        "path":  "builtin/blame.c",
+        "sha256":  "5FA5E3FD3914A75A3A52085E2B1566510899768981F04E4F7D0C30AD1A3F4373",
+        "kb":  37.17
+    },
+    {
+        "path":  "builtin/branch.c",
+        "sha256":  "5E24DA5F3800C0C185340D54E0B000167EBC263BA4DFB33B13DBDDA7B2A98C15",
+        "kb":  32.53
+    },
+    {
+        "path":  "builtin/bugreport.c",
+        "sha256":  "103CEEAC392FFED3E9115FFB12490C626CB6C548E57378F925493CC60D7388CC",
+        "kb":  5.74
+    }
+]
