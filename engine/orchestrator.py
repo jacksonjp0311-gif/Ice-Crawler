@@ -2,7 +2,7 @@
 # Frost → Glacier → Crystal → emits artifacts for UI.
 # UI MUST NEVER RUN GIT. UI reads manifests only.
 
-import os, sys, json, shutil, subprocess, tempfile, datetime
+import os, sys, json, shutil, subprocess, tempfile, datetime, time
 from frost import frost_clone
 from glacier import glacier_select
 from crystal import sha256_file
@@ -15,6 +15,15 @@ def ensure_dir(p): os.makedirs(p, exist_ok=True)
 def run(cmd, cwd=None):
     p=subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     return p.returncode, p.stdout
+
+# v3.4P PATCH: Windows-safe residue purge (retry)
+def purge_dir_retry(path, tries=12, sleep_s=0.20):
+    for _ in range(tries):
+        shutil.rmtree(path, ignore_errors=True)
+        if not os.path.exists(path):
+            return True
+        time.sleep(sleep_s)
+    return (not os.path.exists(path))
 
 def main():
     if len(sys.argv) < 6:
@@ -34,7 +43,7 @@ def main():
 
     # 2) TEMP PRE-CLEAN
     if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        purge_dir_retry(temp_dir)
 
     # 3) FROST CLONE
     frost_clone(repo, temp_dir)
@@ -83,13 +92,17 @@ def main():
             "ui_never_runs_git":True
         }, f, indent=2)
 
-    # 7) RESIDUE PURGE (ρ_post = ∅)
-    shutil.rmtree(temp_dir, ignore_errors=True)
+    # 7) RESIDUE PURGE (ρ_post = ∅)  — v3.4P PATCH: retry
+    ok = purge_dir_retry(temp_dir)
     if os.path.exists(temp_dir):
         raise RuntimeError("Residue violation: temp still exists")
 
     with open(os.path.join(state_run,"residue_truth.json"),"w",encoding="utf-8") as f:
-        json.dump({"ts":utc_now(),"rho_post":"empty"}, f, indent=2)
+        json.dump({"ts":utc_now(),"rho_post":"empty","purge_ok":bool(ok)}, f, indent=2)
+
+    # v3.4P PATCH: exit truth fossil
+    with open(os.path.join(state_run,"orchestrator_exit.json"),"w",encoding="utf-8") as f:
+        json.dump({"ts":utc_now(),"ok":True}, f, indent=2)
 
     return 0
 
