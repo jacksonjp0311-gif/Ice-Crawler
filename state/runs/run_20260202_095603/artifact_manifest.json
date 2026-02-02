@@ -1,0 +1,197 @@
+﻿[
+    {
+        "path":  ".cirrus.yml",
+        "sha256":  "0E22810221A1987BA3CB4EEEDDB415951C5E1C17475B8CCAF858643E8646EF5C",
+        "kb":  0.58
+    },
+    {
+        "path":  ".clang-format",
+        "sha256":  "4D40DE71E3D6C8066306FF8C07E8C3C9065645E9BFB08EF8EF18D35AF5654A02",
+        "kb":  6.52
+    },
+    {
+        "path":  ".editorconfig",
+        "sha256":  "03AEE98C28C13BC72D5D8B7DC5C9006ABE467700BECD83A0F500A7AD5828325D",
+        "kb":  0.33
+    },
+    {
+        "path":  ".gitattributes",
+        "sha256":  "D6E08FE3810B63931BF9E2E7132765C94371B2D097E3BE44D5272768F75D65E1",
+        "kb":  0.8
+    },
+    {
+        "path":  ".github/CONTRIBUTING.md",
+        "sha256":  "365D8E1C389841AD9100493EC4D4C2CC2C2CB2D2ADEACC0E94840FE04231189D",
+        "kb":  1.09
+    },
+    {
+        "path":  ".github/PULL_REQUEST_TEMPLATE.md",
+        "sha256":  "EFF4CCA73209FA7C618F47E63A841641ACF963330865449456E3E2961C699E53",
+        "kb":  0.59
+    },
+    {
+        "path":  ".github/workflows/check-style.yml",
+        "sha256":  "C1868453A7C8FCB93A4BF1EA3F9DB4400CB89841D779DADB8A533E411A592DF7",
+        "kb":  0.8
+    },
+    {
+        "path":  ".github/workflows/check-whitespace.yml",
+        "sha256":  "2BE2DA0F24938E808D8B2218EAD465D61DBC12AC059CFE713354EC3B765C5444",
+        "kb":  0.89
+    },
+    {
+        "path":  ".github/workflows/coverity.yml",
+        "sha256":  "85F67EF6B722DC0F7163A74BFC889FE37EB9A0AC01391C32A8D1DFF7BD983FA2",
+        "kb":  6.72
+    },
+    {
+        "path":  ".github/workflows/l10n.yml",
+        "sha256":  "20E718B835B9DE2D6122A5218054B57F6FD4BA7D9E82AA0F3BFA495ECBD4EB9A",
+        "kb":  3.85
+    },
+    {
+        "path":  ".github/workflows/main.yml",
+        "sha256":  "D3B8AA70957FE30B5F831A5B8892C025924566E1BF3A9294D0BB69FB65050D84",
+        "kb":  18.09
+    },
+    {
+        "path":  ".gitignore",
+        "sha256":  "F1316D4985E5AE9E7E1A33335129667EDEF92DE1C05F58EE8D0ED192B0EA9289",
+        "kb":  3.87
+    },
+    {
+        "path":  ".gitlab-ci.yml",
+        "sha256":  "4709E662CBAB277B9F216E746CA9D5A6D7B9715CA7F7B381B5D98F1F3C6927BA",
+        "kb":  7.12
+    },
+    {
+        "path":  ".gitmodules",
+        "sha256":  "6EA31DD9C864C8D0EA7505232EFBFF629AB20FB9BCB5FC49A076387DEA72E96F",
+        "kb":  0.15
+    },
+    {
+        "path":  ".mailmap",
+        "sha256":  "BAF29C48AEE2E3FA05EC1DBBEB0DB26D20A8786BEFAC22352DC3D19C23AF6CF6",
+        "kb":  17.85
+    },
+    {
+        "path":  ".tsan-suppressions",
+        "sha256":  "281671C80825F452B029C743E085C1E4FFC456747FB41187BE1A6EE9593D3834",
+        "kb":  0.69
+    },
+    {
+        "path":  "abspath.c",
+        "sha256":  "E542759D5C20220852BFC9DA628E181F9BB94573A7B79ECF6ABD4DE64FB27034",
+        "kb":  8.71
+    },
+    {
+        "path":  "abspath.h",
+        "sha256":  "DC714D701ADF1CD177E3D27D91FE88346CFCC56B289A52A09D834DB90CEB303F",
+        "kb":  1.84
+    },
+    {
+        "path":  "aclocal.m4",
+        "sha256":  "9BB3189D49C9F0BBB1D393FDC662464E235CE9D054A9CCF6A2B965CCB9B65074",
+        "kb":  1.48
+    },
+    {
+        "path":  "add-interactive.c",
+        "sha256":  "C73B4F488D760D64D1FC35BFED397E36551CD4069E3E338858C5797A8132161F",
+        "kb":  34.33
+    },
+    {
+        "path":  "add-interactive.h",
+        "sha256":  "A2AA6A89626257126C870D71516F5E9B9BD22F23BE7FB0DE8844917374B46853",
+        "kb":  1.36
+    },
+    {
+        "path":  "add-patch.c",
+        "sha256":  "0A255F25B7F60D6A17F80600597D0234A338F8993DA67695350AE633F466C1D3",
+        "kb":  55.05
+    },
+    {
+        "path":  "advice.c",
+        "sha256":  "1FF9C9E6A9673125FEC064FFEF255CCA5DC2E5FFC3D3EB66EA1648F758BE56E4",
+        "kb":  10
+    },
+    {
+        "path":  "advice.h",
+        "sha256":  "EC6775B845A98F2B585847D0E7B403F62663C26A68E65D02E1D7E9FA1EA4A7A5",
+        "kb":  2.59
+    },
+    {
+        "path":  "alias.c",
+        "sha256":  "4A77BF3C84045C75B1B9A33F3AC840FFF9FF9EDC2E79CBEA57ADE80E952591F6",
+        "kb":  2.92
+    },
+    {
+        "path":  "alias.h",
+        "sha256":  "DF6365BC1BA340399FC7E65CD2F7631E05DE52B4ECC6CC859A16800208B2E5F3",
+        "kb":  0.45
+    },
+    {
+        "path":  "alloc.c",
+        "sha256":  "A678E2E2C919FF1E87D73A97D32513B7A7933A19DCC201FCF08B98FA04B05308",
+        "kb":  2.91
+    },
+    {
+        "path":  "alloc.h",
+        "sha256":  "1BF175E1314402E524AD4C05CF5CDD436215DBCDE258E69EBD8FACF05A73D93B",
+        "kb":  0.5
+    },
+    {
+        "path":  "apply.h",
+        "sha256":  "6F70EB44E1247311BB807B76C0F1A5B49CB81701D0E35338455581FC0196127B",
+        "kb":  5.42
+    },
+    {
+        "path":  "archive.c",
+        "sha256":  "D612ABC545E474F3742656FF6109159C46564926ACC4DE4D4E498BB4E73EF599",
+        "kb":  22.42
+    },
+    {
+        "path":  "archive.h",
+        "sha256":  "C3BEBDE6401D24CDDF1BF1DA9F559B3BD61010913D62B31FD31E8026BE6CDE01",
+        "kb":  1.6
+    },
+    {
+        "path":  "archive-tar.c",
+        "sha256":  "041CA1DDA4595E69EDFD68727D86AD58ECBAC720EF6F5C1F9A749C997C84E598",
+        "kb":  14.43
+    },
+    {
+        "path":  "archive-zip.c",
+        "sha256":  "6142D5467289086002FA1A60031D071A1E818BE33414733F7470C4D9F9BE45E3",
+        "kb":  18.19
+    },
+    {
+        "path":  "attr.c",
+        "sha256":  "58705AE2C7210DB53655A3A00B3ABD649D79FA9C29B346E9FF26CC7EB7D1ABE0",
+        "kb":  35.54
+    },
+    {
+        "path":  "attr.h",
+        "sha256":  "A86E3F1743B0C87150DC0D475F58D45EBA5D6C627A8BBB2F5795BE0A960B6628",
+        "kb":  8.37
+    },
+    {
+        "path":  "banned.h",
+        "sha256":  "98F1D498733E94B619627B007FCE2E7FFFEE67EAD99BD909674482665FD6B9D9",
+        "kb":  1.15
+    },
+    {
+        "path":  "base85.c",
+        "sha256":  "E1B4C133E35322EDE7D645052782CC48A4DD1F4E405E04F453E3CAA493705FCD",
+        "kb":  2.92
+    },
+    {
+        "path":  "base85.h",
+        "sha256":  "0343F9823EF538911E8E39F93B8A7B39F0BE42FE284B2333C336804AD88583A8",
+        "kb":  0.18
+    },
+    {
+        "path":  "bin-wrappers/.gitignore",
+        "sha256":  "0D1BFDE86F85FDF3C0120C90550C414ED3CE9FE793A30894EA89DEBA0E724E86",
+        "kb":  0.13
+    }
+]
