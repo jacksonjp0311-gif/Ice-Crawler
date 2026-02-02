@@ -7,7 +7,11 @@ def sha256_file(path: str):
             h.update(chunk)
     return h.hexdigest()
 
+def sha256_text(s: str):
+    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+
 def crystal_seal(state_run: str, manifest):
+    # artifact hashes mirror (stable)
     with open(state_run+"/artifact_hashes.json","w",encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
 

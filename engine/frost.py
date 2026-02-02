@@ -1,4 +1,4 @@
-﻿import subprocess, datetime, json
+﻿import subprocess, datetime
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
@@ -22,5 +22,5 @@ def frost_telemetry(repo_url: str):
     }
 
 def glacier_clone(repo_url: str, temp_dir: str):
-    # Glacier performs materialization (ephemeral), still shallow
+    # Glacier performs materialization (ephemeral), shallow
     subprocess.check_call(["git","clone","--depth=1","--single-branch",repo_url,temp_dir])
