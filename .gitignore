@@ -211,3 +211,7 @@ state/runs/**
 
 engine/_quarantine/**
 
+
+# Local chat exports (never tracked)
+__CHATGPT_EXPORT__/
+
