@@ -3,6 +3,7 @@
     "ui_reads_only":  [
                           "ui/engine_registry.json",
                           "ui/latest_run_path.txt",
+                          "ui/latest_ai_handoff_path.txt",
                           "state/runs/\u003clatest\u003e/{artifact_manifest.json,artifact_hashes.json,crystal_index.json,ui_events.jsonl,ai_handoff_path.txt}"
                       ],
     "engines":  [
@@ -10,6 +11,6 @@
                     "engine/glacier.py",
                     "engine/crystal.py"
                 ],
-    "v":  "3.9P",
-    "ts":  "2026-02-02T22:37:48Z"
+    "v":  "3.9P+",
+    "ts":  "2026-02-02T22:44:39Z"
 }

@@ -1,7 +1,0 @@
-﻿{
-    "phase":  "VERIFY",
-    "error":  "Residue violation: TempW still exists → ρ_post ≠ ∅",
-    "law":  "EVERY FAILURE → PROCESS UPGRADE",
-    "v":  "2.6P",
-    "ts":  "2026-02-02T15:58:31Z"
-}
