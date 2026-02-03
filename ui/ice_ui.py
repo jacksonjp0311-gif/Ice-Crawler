@@ -1,33 +1,27 @@
 ﻿# ui/ice_ui.py
-# ❄ ICE-CRAWLER UI v1.0 — Frost → Glacier → Crystal Control Surface
-# UI is observational only. Orchestrator is sole authority.
+# ❄ ICE-CRAWLER UI v4.1 — Canon Control Surface
 #
 # IMMUTABLE UI LAW
 #  • UI never runs git
 #  • UI never touches repo substrate directly
 #  • UI reads ONLY emitted fossils:
-#      - ui_events.jsonl
-#      - ai_handoff_path.txt
-#      - manifest_compact.json
-#      - root_seal.txt
-#  • UI may anchor local folders (state/runs) for deterministic operation
+#      - state/runs/<latest>/ui_events.jsonl
+#      - state/runs/<latest>/ai_handoff_path.txt
+#      - state/runs/<latest>/ai_handoff/root_seal.txt
+#
+# UI is observational only. Orchestrator is sole authority.
 
 import os, threading, queue, time, subprocess
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-PHASES = ["Frost", "Glacier", "Crystal"]
+PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 
-# ─────────────────────────────────────────────────────────────
-# ORCHESTRATOR LAUNCH (UI NEVER RUNS GIT)
-# ─────────────────────────────────────────────────────────────
-
-def run_orchestrator(repo_root, repo_url, max_files, max_kb):
-
+def run_orchestrator(repo_root, repo_url):
     engine = os.path.join(repo_root, "engine")
     orch   = os.path.join(engine, "orchestrator.py")
 
-    # UI anchors only local fossil surface
+    # UI may anchor run surface
     state_dir = os.path.join(repo_root, "state", "runs")
     os.makedirs(state_dir, exist_ok=True)
 
@@ -36,18 +30,10 @@ def run_orchestrator(repo_root, repo_url, max_files, max_kb):
     os.makedirs(state_run, exist_ok=True)
 
     tempw = os.path.join(
-        os.environ.get("TEMP", "."),
-        "icecrawl_ui_" + str(int(time.time()*1000))
+        os.environ.get("TEMP","."), "icecrawl_ui_" + str(int(time.time()*1000))
     )
 
-    cmd = [
-        "python", orch,
-        repo_url,
-        state_run,
-        str(max_files),
-        str(max_kb),
-        tempw
-    ]
+    cmd = ["python", orch, repo_url, state_run, "50", "120", tempw]
 
     p = subprocess.run(
         cmd,
@@ -57,12 +43,8 @@ def run_orchestrator(repo_root, repo_url, max_files, max_kb):
         text=True
     )
 
-    return p.returncode, p.stdout, state_run
+    return p.returncode, state_run
 
-
-# ─────────────────────────────────────────────────────────────
-# UI APP (MATCH SCREENSHOT)
-# ─────────────────────────────────────────────────────────────
 
 class IceCrawlerUI(tk.Tk):
 
@@ -70,15 +52,12 @@ class IceCrawlerUI(tk.Tk):
         super().__init__()
 
         self.title("ICE-CRAWLER ❄")
-        self.geometry("880x620")
+        self.geometry("900x640")
         self.configure(bg="#05080d")
 
         self.repo_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
         )
-
-        # Allowed: anchor UI-local surfaces
-        os.makedirs(os.path.join(self.repo_root, "state", "runs"), exist_ok=True)
 
         self.q = queue.Queue()
         self._build()
@@ -86,34 +65,32 @@ class IceCrawlerUI(tk.Tk):
 
     def _build(self):
 
-        # URL ENTRY
-        top = ttk.Frame(self, padding=14)
+        # URL INPUT
+        top = ttk.Frame(self, padding=16)
         top.pack(fill="x")
 
-        self.url_entry = ttk.Entry(top, font=("Segoe UI", 14))
-        self.url_entry.pack(fill="x", pady=(0, 10))
+        self.url_entry = ttk.Entry(top, font=("Segoe UI", 15))
+        self.url_entry.pack(fill="x", pady=(0,10))
         self.url_entry.insert(0, "Enter URL or GitHub URL")
 
         self.submit_btn = ttk.Button(
-            top,
-            text="Submit to Ice-Crawler",
-            command=self.on_submit
+            top, text="Submit to Ice-Crawler", command=self.on_submit
         )
         self.submit_btn.pack(fill="x")
 
-        # BODY
+        # CENTER BODY
         mid = ttk.Frame(self, padding=18)
         mid.pack(fill="both", expand=True)
 
         # PHASE LADDER
         ladder = ttk.Frame(mid)
-        ladder.pack(side="left", padx=20)
+        ladder.pack(side="left", padx=25)
 
         self.phase_labels = {}
-        for phase in PHASES:
-            lbl = ttk.Label(ladder, text=f"⬤ {phase}", font=("Segoe UI", 16))
-            lbl.pack(anchor="w", pady=14)
-            self.phase_labels[phase] = lbl
+        for p in PHASES:
+            lbl = ttk.Label(ladder, text=f"⬤ {p}", font=("Segoe UI", 16))
+            lbl.pack(anchor="w", pady=10)
+            self.phase_labels[p] = lbl
 
         # LOGO
         logo = ttk.Frame(mid)
@@ -122,15 +99,15 @@ class IceCrawlerUI(tk.Tk):
         ttk.Label(
             logo,
             text="ICE\nCRAWLER ❄",
-            font=("Segoe UI", 38, "bold"),
+            font=("Segoe UI", 40, "bold"),
             justify="center"
         ).pack(pady=40)
 
         # PROGRESS
-        self.progress = ttk.Progressbar(self, mode="determinate", maximum=100)
-        self.progress.pack(fill="x", padx=40, pady=12)
+        self.progress = ttk.Progressbar(self, maximum=100)
+        self.progress.pack(fill="x", padx=50, pady=14)
 
-        # OUTPUT
+        # OUTPUT PATH
         bottom = ttk.Frame(self, padding=18)
         bottom.pack(fill="x")
 
@@ -143,29 +120,6 @@ class IceCrawlerUI(tk.Tk):
         self.output_box = tk.Text(bottom, height=2, font=("Consolas", 12))
         self.output_box.pack(fill="x", pady=8)
 
-    def on_submit(self):
-
-        repo_url = self.url_entry.get().strip()
-        if not repo_url or repo_url.startswith("Enter URL"):
-            messagebox.showerror("ICE-CRAWLER", "Repo URL required.")
-            return
-
-        self.submit_btn.config(state="disabled")
-        self.progress["value"] = 5
-
-        self._set_phase("Frost", "pending")
-
-        def work():
-            rc, out, state_run = run_orchestrator(
-                self.repo_root,
-                repo_url,
-                max_files=50,
-                max_kb=120
-            )
-            self.q.put((rc, out, state_run))
-
-        threading.Thread(target=work, daemon=True).start()
-
     def _set_phase(self, phase, state):
         lbl = self.phase_labels[phase]
         if state == "pending":
@@ -175,22 +129,41 @@ class IceCrawlerUI(tk.Tk):
         else:
             lbl.config(text=f"⬤ {phase}")
 
+    def on_submit(self):
+
+        repo_url = self.url_entry.get().strip()
+        if not repo_url or repo_url.startswith("Enter URL"):
+            messagebox.showerror("ICE-CRAWLER", "Repo URL required.")
+            return
+
+        self.submit_btn.config(state="disabled")
+        self.progress["value"] = 5
+        self._set_phase("Frost","pending")
+
+        def work():
+            rc, state_run = run_orchestrator(self.repo_root, repo_url)
+            self.q.put(state_run)
+
+        threading.Thread(target=work, daemon=True).start()
+
     def _pump(self):
+
         try:
             while True:
-                rc, out, state_run = self.q.get_nowait()
+                state_run = self.q.get_nowait()
 
-                self._set_phase("Frost", "verified")
-                self._set_phase("Glacier", "verified")
-                self._set_phase("Crystal", "verified")
+                # For now: mark phases green (v4.2 will read ui_events.jsonl)
+                for p in PHASES:
+                    self._set_phase(p,"verified")
+
                 self.progress["value"] = 100
 
-                proof_file = os.path.join(state_run, "ai_handoff_path.txt")
-                path = "(missing ai_handoff_path.txt)"
+                proof_file = os.path.join(state_run,"ai_handoff_path.txt")
+                path="(missing ai_handoff_path.txt)"
                 if os.path.exists(proof_file):
-                    path = open(proof_file,"r",encoding="utf-8").read().strip()
+                    path=open(proof_file,"r",encoding="utf-8").read().strip()
 
-                self.output_box.delete("1.0", "end")
+                self.output_box.delete("1.0","end")
                 self.output_box.insert("end", path)
 
                 self.submit_btn.config(state="normal")
@@ -201,6 +174,5 @@ class IceCrawlerUI(tk.Tk):
         self.after(150, self._pump)
 
 
-if __name__ == "__main__":
-    app = IceCrawlerUI()
-    app.mainloop()
+if __name__=="__main__":
+    IceCrawlerUI().mainloop()
