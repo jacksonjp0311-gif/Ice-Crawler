@@ -1,0 +1,12 @@
+﻿❄ ICE-CRAWLER UI ASSET LAYER (v4.4A)
+
+This folder contains ONLY visual skin artifacts:
+
+ • icons
+ • glow overlays
+ • snowflake marks
+ • ladder textures
+
+No engine logic.
+No event truth.
+Pure surface crystallization.
