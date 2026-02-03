@@ -1,0 +1,13 @@
+﻿RUNTIME NOTE (ICE-CRAWLER v5.0C)
+
+PowerShell path truth (from repo root):
+  ✅ .\IceCrawler.exe
+  ✅ .\dist\IceCrawler.exe
+
+Do NOT run (from arbitrary folder):
+  ❌ dist\IceCrawler.exe
+PowerShell can interpret 'dist' as a module name.
+
+Bug-class fixed in v5.0C:
+  Frozen runtime previously wrote into _MEIPASS temp space.
+  Now it anchors to EXE folder (stable public behavior).

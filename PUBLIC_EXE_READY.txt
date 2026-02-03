@@ -1,0 +1,21 @@
+﻿❄ ICE-CRAWLER TRUE PUBLIC EXE READY (v5.0C)
+
+Entry:
+  IceCrawler.exe   (repo root)
+  dist\IceCrawler.exe
+
+Critical runtime truth:
+  • Frozen root is the folder containing IceCrawler.exe
+  • State/artifacts land in: <EXE_FOLDER>\state\runs\run_YYYYMMDD_HHMMSS
+  • This removes “buggy EXE” caused by _MEIPASS temp paths
+
+This build:
+  • requires NO Python
+  • requires NO terminal
+  • includes ui/design + ui/assets
+  • runs orchestrator via embedded runtime (sys.executable)
+
+If a machine fails to launch:
+  • install Microsoft Visual C++ Redistributable 2015–2022 (x64)
+
+Status: FROZEN ROOT TRUTH SEALED.
