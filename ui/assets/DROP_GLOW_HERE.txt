@@ -1,0 +1,2 @@
+﻿❄ DROP glow.png into this folder.
+This overlay will render behind the progress bar.

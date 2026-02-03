@@ -1,14 +1,10 @@
 ﻿# ui/ice_ui.py
-# ❄ ICE-CRAWLER UI v4.3D — DESIGN-FOLDER EVENT-TRUTH SURFACE
+# ❄ ICE-CRAWLER UI v4.5 — PHOTO-LOCK COMPLETION SURFACE
 #
-# IMMUTABLE UI LAW
-#  • UI never runs git
-#  • UI never touches engine substrate
-#  • UI reads ONLY emitted fossils:
-#      - ui_events.jsonl
-#      - ai_handoff_path.txt
-#
-# UI DESIGN lives in ui/design/
+# Adds:
+#  • Open Artifact button
+#  • Fossil event viewer
+#  • Ladder pulse animation
 
 import os, threading, queue, time, subprocess
 import tkinter as tk
@@ -18,9 +14,6 @@ from design.layout import apply_style, build_surface
 
 PHASES = ["Frost","Glacier","Crystal","Residue"]
 
-# ─────────────────────────────────────────────────────────────
-# ORCHESTRATOR LAUNCH (UI NEVER RUNS GIT)
-# ─────────────────────────────────────────────────────────────
 def run_orchestrator(repo_root, repo_url):
 
     orch = os.path.join(repo_root,"engine","orchestrator.py")
@@ -32,11 +25,7 @@ def run_orchestrator(repo_root, repo_url):
     state_run = os.path.join(state_dir, run_tag)
     os.makedirs(state_run, exist_ok=True)
 
-    tempw = os.path.join(
-        os.environ.get("TEMP","."),"icecrawl_ui_"+str(int(time.time()*1000))
-    )
-
-    cmd = ["python", orch, repo_url, state_run, "50", "120", tempw]
+    cmd = ["python", orch, repo_url, state_run, "50", "120"]
 
     p = subprocess.run(cmd, cwd=repo_root,
                        stdout=subprocess.PIPE,
@@ -49,10 +38,7 @@ def run_orchestrator(repo_root, repo_url):
 def read_events(state_run):
     ev = os.path.join(state_run,"ui_events.jsonl")
     if not os.path.exists(ev): return ""
-    try:
-        return open(ev,"r",encoding="utf-8").read()
-    except:
-        return ""
+    return open(ev,"r",encoding="utf-8").read()
 
 
 class IceCrawlerUI(tk.Tk):
@@ -61,7 +47,7 @@ class IceCrawlerUI(tk.Tk):
         super().__init__()
 
         self.title("ICE-CRAWLER ❄")
-        self.geometry("900x720")
+        self.geometry("950x860")
 
         self.repo_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__),"..")
@@ -80,6 +66,11 @@ class IceCrawlerUI(tk.Tk):
     def _set_phase(self, phase, ok):
         lbl=self.phase_labels[phase]
         lbl.config(text=("✓ " if ok else "⬤ ")+phase)
+
+
+    def open_artifact(self):
+        if not self.state_run: return
+        os.startfile(self.state_run)
 
 
     def on_submit(self):
@@ -116,13 +107,16 @@ class IceCrawlerUI(tk.Tk):
             self._set_phase("Crystal", "CRYSTAL_VERIFIED" in events)
             self._set_phase("Residue", "RESIDUE_LOCK"     in events)
 
-            self.progress["value"]=100 if "CRYSTAL_VERIFIED" in events else 60
+            self.progress["value"]=100 if "CRYSTAL_VERIFIED" in events else 70
 
             proof=os.path.join(self.state_run,"ai_handoff_path.txt")
             if os.path.exists(proof):
                 path=open(proof,"r",encoding="utf-8").read().strip()
                 self.output_box.delete("1.0","end")
                 self.output_box.insert("end",path)
+
+            self.event_view.delete("1.0","end")
+            self.event_view.insert("end",events[-1200:])
 
             self.submit_btn.config(state="normal")
 

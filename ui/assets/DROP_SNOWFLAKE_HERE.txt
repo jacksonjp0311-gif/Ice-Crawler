@@ -1,0 +1,2 @@
+﻿❄ DROP snowflake.png into this folder.
+This icon will render in the ICE logo panel.
