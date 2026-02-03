@@ -1,16 +1,11 @@
 ﻿{
-    "ts":  "2026-02-02T22:59:58Z",
-    "v":  "4.0P",
-    "ui_entrypoint":  "ui/ice_ui.py",
-    "orchestrator":  "engine/orchestrator.py",
-    "engines":  [
-                    "engine/frost.py",
-                    "engine/glacier.py",
-                    "engine/crystal.py"
-                ],
     "ui_reads_only":  [
-                          "ui/engine_registry.json",
-                          "ui/latest_run_path.txt",
-                          "state/runs/\u003clatest\u003e/{artifact_manifest.json,artifact_hashes.json,crystal_index.json,ui_events.jsonl,ai_handoff_path.txt}"
-                      ]
+                          "state/runs/\u003clatest\u003e/ui_events.jsonl",
+                          "state/runs/\u003clatest\u003e/ai_handoff_path.txt",
+                          "state/runs/\u003clatest\u003e/ai_handoff/root_seal.txt"
+                      ],
+    "ui_entrypoint":  "ui/ice_ui.py",
+    "ui_never_runs_git":  true,
+    "v":  "4.0U",
+    "ts":  "2026-02-03T10:53:28Z"
 }
