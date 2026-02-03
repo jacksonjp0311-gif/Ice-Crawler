@@ -6,6 +6,6 @@
                       ],
     "ui_entrypoint":  "ui/ice_ui.py",
     "ui_never_runs_git":  true,
-    "v":  "4.1U",
-    "ts":  "2026-02-03T10:57:44Z"
+    "v":  "4.2U",
+    "ts":  "2026-02-03T11:08:30Z"
 }
