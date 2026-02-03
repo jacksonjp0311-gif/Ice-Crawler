@@ -1,10 +1,10 @@
 ﻿# ui/ice_ui.py
-# ❄ ICE-CRAWLER UI v4.5 — PHOTO-LOCK COMPLETION SURFACE
+# ❄ ICE-CRAWLER UI v4.6R — RELEASE PHOTO-LOCK SURFACE
 #
 # Adds:
-#  • Open Artifact button
-#  • Fossil event viewer
 #  • Ladder pulse animation
+#  • Crystal completion glow
+#  • Release-ready polish
 
 import os, threading, queue, time, subprocess
 import tkinter as tk
@@ -47,7 +47,7 @@ class IceCrawlerUI(tk.Tk):
         super().__init__()
 
         self.title("ICE-CRAWLER ❄")
-        self.geometry("950x860")
+        self.geometry("950x880")
 
         self.repo_root = os.path.abspath(
             os.path.join(os.path.dirname(__file__),"..")
@@ -60,12 +60,29 @@ class IceCrawlerUI(tk.Tk):
         apply_style(style)
         build_surface(self, PHASES)
 
+        self.pulse = 0
+        self.after(120,self._animate)
         self.after(200,self._pump)
+
+
+    def _animate(self):
+        # Ladder pulse glow animation
+        self.pulse = (self.pulse + 1) % 20
+        glow = "✓" if self.pulse < 10 else "⬤"
+
+        for phase, lbl in self.phase_labels.items():
+            if "✓" not in lbl.cget("text"):
+                lbl.config(text=f"{glow} {phase}")
+
+        self.after(120,self._animate)
 
 
     def _set_phase(self, phase, ok):
         lbl=self.phase_labels[phase]
         lbl.config(text=("✓ " if ok else "⬤ ")+phase)
+
+        if phase=="Crystal" and ok:
+            lbl.config(foreground="#6fe7ff")
 
 
     def open_artifact(self):
@@ -107,7 +124,7 @@ class IceCrawlerUI(tk.Tk):
             self._set_phase("Crystal", "CRYSTAL_VERIFIED" in events)
             self._set_phase("Residue", "RESIDUE_LOCK"     in events)
 
-            self.progress["value"]=100 if "CRYSTAL_VERIFIED" in events else 70
+            self.progress["value"]=100 if "CRYSTAL_VERIFIED" in events else 75
 
             proof=os.path.join(self.state_run,"ai_handoff_path.txt")
             if os.path.exists(proof):
@@ -116,7 +133,7 @@ class IceCrawlerUI(tk.Tk):
                 self.output_box.insert("end",path)
 
             self.event_view.delete("1.0","end")
-            self.event_view.insert("end",events[-1200:])
+            self.event_view.insert("end",events[-1400:])
 
             self.submit_btn.config(state="normal")
 

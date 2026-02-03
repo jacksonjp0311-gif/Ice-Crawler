@@ -1,0 +1,9 @@
+﻿❄ ICE-CRAWLER UI RELEASE SEAL (v4.6R)
+
+UI PHOTO-LOCK SURFACE COMPLETE.
+
+Design Layer: ui/design/
+Assets Layer: ui/assets/
+
+Ready for public test.
+Run: ui/run_ui.ps1
