@@ -1,0 +1,12 @@
+﻿❄ ICE-CRAWLER PUBLIC RELEASE READY (v4.7X)
+
+Entry Point:
+  IceCrawler.exe   (double click)
+
+No PowerShell required.
+No terminal required.
+UI launches as sealed photo-lock surface.
+
+Drop artifact URL → Submit → Fossils appear.
+
+Status: READY FOR PUBLIC TEST.
