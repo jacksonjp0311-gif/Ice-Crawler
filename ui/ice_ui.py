@@ -87,13 +87,44 @@ class IceCrawlerUI(tk.Tk):
         self._build()
         self.after(200, self._pump)
 
-    def _build(self):
+        def _build(self):
 
-        top = ttk.Frame(self, padding=16)
+        style = ttk.Style()
+        style.theme_use("clam")
+
+        # GLOBAL COLORS (PHOTO-LOCK)
+        BG      = "#05080d"
+        PANEL   = "#0b141c"
+        CYAN    = "#6fe7ff"
+        CYAN2   = "#3bbcd6"
+        TEXT    = "#d8fbff"
+
+        self.configure(bg=BG)
+
+        style.configure("TFrame", background=BG)
+
+        style.configure("TLabel",
+            background=BG,
+            foreground=TEXT,
+            font=("Segoe UI", 16)
+        )
+
+        style.configure("TButton",
+            font=("Segoe UI", 18, "bold"),
+            padding=14
+        )
+
+        # ─────────────────────────────
+        # TOP URL PANEL
+        # ─────────────────────────────
+        top = ttk.Frame(self, padding=18)
         top.pack(fill="x")
 
-        self.url_entry = ttk.Entry(top, font=("Segoe UI", 15))
-        self.url_entry.pack(fill="x", pady=(0,10))
+        self.url_entry = ttk.Entry(
+            top,
+            font=("Segoe UI", 20)
+        )
+        self.url_entry.pack(fill="x", pady=(0, 16))
         self.url_entry.insert(0, "Enter URL or GitHub URL")
 
         self.submit_btn = ttk.Button(
@@ -103,42 +134,76 @@ class IceCrawlerUI(tk.Tk):
         )
         self.submit_btn.pack(fill="x")
 
-        mid = ttk.Frame(self, padding=18)
+        # ─────────────────────────────
+        # CENTER BODY
+        # ─────────────────────────────
+        mid = ttk.Frame(self, padding=25)
         mid.pack(fill="both", expand=True)
 
+        # LEFT LADDER
         ladder = ttk.Frame(mid)
-        ladder.pack(side="left", padx=25)
+        ladder.pack(side="left", padx=30)
 
         self.phase_labels = {}
-        for p in PHASES:
-            lbl = ttk.Label(ladder, text=f"⬤ {p}", font=("Segoe UI", 16))
-            lbl.pack(anchor="w", pady=10)
-            self.phase_labels[p] = lbl
+        for phase in PHASES:
+            lbl = ttk.Label(
+                ladder,
+                text=f"⬤ {phase}",
+                font=("Segoe UI", 22)
+            )
+            lbl.pack(anchor="w", pady=18)
+            self.phase_labels[phase] = lbl
 
+        # CENTER LOGO BLOCK
         logo = ttk.Frame(mid)
         logo.pack(side="left", expand=True)
 
         ttk.Label(
             logo,
             text="ICE\nCRAWLER ❄",
-            font=("Segoe UI", 40, "bold"),
-            justify="center"
-        ).pack(pady=40)
+            font=("Segoe UI", 54, "bold"),
+            justify="center",
+            foreground=CYAN
+        ).pack(pady=50)
 
-        self.progress = ttk.Progressbar(self, maximum=100)
-        self.progress.pack(fill="x", padx=50, pady=14)
+        # ─────────────────────────────
+        # PROGRESS BAR
+        # ─────────────────────────────
+        style.configure("Ice.Horizontal.TProgressbar",
+            troughcolor="#111820",
+            background=CYAN2,
+            thickness=26
+        )
 
-        bottom = ttk.Frame(self, padding=18)
+        self.progress = ttk.Progressbar(
+            self,
+            style="Ice.Horizontal.TProgressbar",
+            mode="determinate",
+            maximum=100
+        )
+        self.progress.pack(fill="x", padx=60, pady=20)
+
+        # ─────────────────────────────
+        # OUTPUT PANEL
+        # ─────────────────────────────
+        bottom = ttk.Frame(self, padding=22)
         bottom.pack(fill="x")
 
         ttk.Label(
             bottom,
             text="Copy paste this link to the artifact on your local device:",
-            font=("Segoe UI", 13)
-        ).pack(anchor="w")
+            font=("Segoe UI", 18)
+        ).pack(anchor="w", pady=(0, 12))
 
-        self.output_box = tk.Text(bottom, height=2, font=("Consolas", 12))
-        self.output_box.pack(fill="x", pady=8)
+        self.output_box = tk.Text(
+            bottom,
+            height=2,
+            font=("Consolas", 16),
+            bg="#0d1117",
+            fg=CYAN,
+            relief="flat"
+        )
+        self.output_box.pack(fill="x")
 
     def _set_phase(self, phase, verified):
         lbl = self.phase_labels[phase]
@@ -194,3 +259,4 @@ class IceCrawlerUI(tk.Tk):
 
 if __name__=="__main__":
     IceCrawlerUI().mainloop()
+
