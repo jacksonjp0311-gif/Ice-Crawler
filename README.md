@@ -77,25 +77,46 @@ git clone https://github.com/<your-org>/Ice-Crawler.git
 Set-Location .\Ice-Crawler
 ```
 
-## Launch from repository root
+## Launch from repository root (single canonical entrypoint)
 
-Use the root launchers so operators can start the UI from the main project directory:
+Use **one entrypoint** for all environments:
 
-- `launch_ice_crawler.py` (cross-platform Python launcher)
-- `launch_ice_crawler.sh` (Bash launcher)
-- `launch_ice_crawler.ps1` (PowerShell launcher)
+```bash
+python icecrawler.py
+```
 
-### EXE behavior by platform
+PowerShell:
 
-- **Windows:** double-click `IceCrawler.exe` in repo root (snowflake-branded app window title: `ICE-CRAWLER ❄`).
-- **macOS/Linux:** `.exe` is a Windows binary; use the launch scripts above or run `python ui/ice_ui.py`.
+```powershell
+python .\icecrawler.py
+```
+
+What this does:
+
+- Windows: tries `IceCrawler.exe` / built EXE locations first, then **auto-falls back to Python UI** if EXE is missing or broken.
+- macOS/Linux: runs Python UI directly.
+
+### Optional helper scripts
+
+- `scripts/launchers/icecrawler.sh`
+- `scripts/launchers/icecrawler.ps1`
+
+### Building a Windows EXE locally
+
+To ensure compatibility with your machine (and avoid DLL/runtime mismatch), build locally:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build\build_windows_exe.ps1
+```
+
+This outputs `dist\IceCrawler.exe`.
 
 ## Running the UI
 
 ### Bash (Linux/macOS)
 
 ```bash
-python ui/ice_ui.py
+python icecrawler.py
 ```
 
 Then paste a repository URL and click **Run**.
@@ -103,7 +124,7 @@ Then paste a repository URL and click **Run**.
 ### PowerShell (Windows)
 
 ```powershell
-python .\ui\ice_ui.py
+python .\icecrawler.py
 ```
 
 Then paste a repository URL and click **Run**.
@@ -173,6 +194,7 @@ Inside each run directory (`state/runs/<run>/`):
 - **`ModuleNotFoundError` when running orchestrator:** run as module from repo root using `python -m engine.orchestrator ...`.
 - **UI run appears stuck:** inspect `<run>/ui_stdout.txt` and `<run>/ui_rc.txt` for subprocess diagnostics.
 - **Tkinter `no $DISPLAY` error (Linux headless):** this is an environment limitation; run with a desktop session or X server.
+- **`ordinal ... could not be located` on Windows EXE:** your EXE runtime is incompatible; run `python icecrawler.py` immediately, then rebuild local EXE via `scripts/build/build_windows_exe.ps1`.
 - **Run folder won’t open:** ensure desktop opener is available (`explorer`, `open`, or `xdg-open`).
 
 ## License / attribution
