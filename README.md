@@ -79,35 +79,24 @@ Set-Location .\Ice-Crawler
 
 ## Launch from repository root (single canonical entrypoint)
 
-### Windows one-click start (recommended)
+### Single entrypoint (all platforms)
 
-After cloning, double-click **`IceCrawler.cmd`** in the repo root.
-
-This is the single-click launcher and is designed to always use Python runtime (avoids broken EXE runtime/ordinal issues).
-
-Use **one entrypoint** for all environments:
+Use exactly one launcher: **`icecrawler.py`** at the repository root.
 
 ```bash
 python icecrawler.py
 ```
 
-PowerShell:
-
 ```powershell
 python .\icecrawler.py
 ```
 
-What this does:
+Behavior:
 
-- Default on all platforms: runs Python UI directly for reliability.
-- Optional Windows EXE mode: `python icecrawler.py --prefer-exe` (falls back to Python if EXE fails).
+- Runs the UI through your current Python interpreter (default/recommended).
+- Optional EXE mode only when explicitly requested: `python icecrawler.py --prefer-exe` (Windows).
 
-### Optional helper scripts
-
-- `scripts/launchers/icecrawler.sh`
-- `scripts/launchers/icecrawler.ps1`
-
-### Building a Windows EXE locally
+### Building a Windows EXE locally (optional)
 
 To ensure compatibility with your machine (and avoid DLL/runtime mismatch), build locally:
 
@@ -209,7 +198,7 @@ Inside each run directory (`state/runs/<run>/`):
 - **`ModuleNotFoundError` when running orchestrator:** run as module from repo root using `python -m engine.orchestrator ...`.
 - **UI run appears stuck:** inspect `<run>/ui_stdout.txt` and `<run>/ui_rc.txt` for subprocess diagnostics.
 - **Tkinter `no $DISPLAY` error (Linux headless):** this is an environment limitation; run with a desktop session or X server.
-- **`ordinal ... could not be located` on Windows EXE:** your EXE runtime is incompatible; run `python icecrawler.py` immediately, then rebuild local EXE via `scripts/build/build_windows_exe.ps1`.
+- **`ordinal ... could not be located` on Windows EXE:** your EXE runtime is incompatible; run `python icecrawler.py` immediately, then rebuild local EXE via `scripts/build/build_windows_exe.ps1` if needed.
 - **Run folder won’t open:** ensure desktop opener is available (`explorer`, `open`, or `xdg-open`).
 
 ## License / attribution

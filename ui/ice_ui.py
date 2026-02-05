@@ -132,7 +132,7 @@ def apply_photo_lock_style(root: tk.Tk):
         pass
 
     style.configure("TFrame", background="#0b1116")
-    style.configure("TLabel", background="#0b1116", foreground="#d9f2ff", font=("Segoe UI", 11))
+    style.configure("TLabel", background="#071225", foreground="#63dcff", font=("Segoe UI", 11))
     style.configure("Title.TLabel", foreground="#e9fbff", font=("Segoe UI Semibold", 20))
     style.configure("Sub.TLabel", foreground="#8fb8c9", font=("Segoe UI", 10))
 
@@ -149,8 +149,8 @@ class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ICE-CRAWLER ❄")
-        self.geometry("980x860")
-        self.configure(bg="#0b1116")
+        self.geometry("1060x760")
+        self.configure(bg="#051024")
 
         apply_window_icon(self)
         apply_photo_lock_style(self)
@@ -162,6 +162,7 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = ""
         self.run_path = read_latest_run_path()
 
+        self._phase_dots = {}
         self._build()
         self.after(200, self._animate)
         self.after(350, self._pump)
@@ -170,21 +171,20 @@ class IceCrawlerUI(tk.Tk):
         self._refresh_from_fossils(force=True)
 
     def _build(self):
-        # Header
-        header = ttk.Frame(self, padding=18)
-        header.pack(fill="x")
+        root = tk.Frame(self, bg="#051024")
+        root.pack(fill="both", expand=True)
 
-        ttl = ttk.Label(header, text="ICE-CRAWLER", style="Title.TLabel")
-        ttl.pack(anchor="w")
-        sub = ttk.Label(header, text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader", style="Sub.TLabel")
-        sub.pack(anchor="w", pady=(2,0))
+        header = tk.Frame(root, bg="#051024")
+        header.pack(fill="x", padx=22, pady=(18, 6))
+        tk.Label(header, text="ICE-CRAWLER", fg="#63dcff", bg="#051024", font=("Segoe UI", 36, "bold")).pack(anchor="w")
+        tk.Label(header, text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader", fg="#1fbfff", bg="#051024", font=("Segoe UI", 20)).pack(anchor="w")
 
         # Input row
-        row = ttk.Frame(self, padding=(18, 0, 18, 8))
-        row.pack(fill="x")
+        row = tk.Frame(root, bg="#051024")
+        row.pack(fill="x", padx=22, pady=(8, 14))
 
-        self.url_entry = ttk.Entry(row, width=78)
-        self.url_entry.pack(side="left", padx=(0,10), ipady=6)
+        self.url_entry = tk.Entry(row, width=64, bg="#071a35", fg="#35c6ff", insertbackground="#63dcff", relief="solid", bd=2, font=("Segoe UI", 18))
+        self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 14), ipady=8)
         self.url_entry.insert(0, PLACEHOLDER)
         self._placeholder_active = True
 
@@ -202,39 +202,43 @@ class IceCrawlerUI(tk.Tk):
         self.url_entry.bind("<FocusIn>", on_focus_in)
         self.url_entry.bind("<FocusOut>", on_focus_out)
 
-        self.submit_btn = ttk.Button(row, text="Run", command=self.on_submit)
+        self.submit_btn = tk.Button(row, text="▼  RUN ICE CRAWLER", command=self.on_submit, bg="#0f355c", fg="#ffd078", activebackground="#164878", activeforeground="#ffd078", relief="flat", padx=14, pady=10, font=("Segoe UI", 12, "bold"))
         self.submit_btn.pack(side="left")
 
-        self.open_btn = ttk.Button(row, text="Open Run Folder", command=self.open_run_folder)
-        self.open_btn.pack(side="left", padx=(10,0))
-
         # Ladder
-        ladder = ttk.Frame(self, padding=18)
-        ladder.pack(fill="x")
+        ladder = tk.Frame(root, bg="#051024")
+        ladder.pack(fill="x", padx=22, pady=(2, 14))
 
         self.phase_labels = {}
         for p in PHASES:
-            lbl = ttk.Label(ladder, text=f"⬤ {p}", style="Phase.TLabel")
-            lbl.pack(anchor="w", pady=3)
+            phase_row = tk.Frame(ladder, bg="#051024")
+            phase_row.pack(anchor="w", pady=5)
+            dot = tk.Label(phase_row, text="○", fg="#63dcff", bg="#051024", font=("Segoe UI", 24, "bold"))
+            dot.pack(side="left")
+            lbl = tk.Label(phase_row, text=p, fg="#63dcff", bg="#051024", font=("Segoe UI", 24, "bold"))
+            lbl.pack(side="left", padx=(10, 0))
             self.phase_labels[p] = lbl
+            self._phase_dots[p] = dot
 
         # Progress
-        prog = ttk.Frame(self, padding=(18,0,18,0))
-        prog.pack(fill="x")
-        self.progress = ttk.Progressbar(prog, mode="determinate", maximum=100)
-        self.progress.pack(fill="x", pady=(4,12))
+        prog = tk.Frame(root, bg="#051024")
+        prog.pack(fill="x", padx=22, pady=(0, 14))
+        self.progress = ttk.Progressbar(prog, mode="determinate", maximum=100, style="TProgressbar")
+        self.progress.pack(fill="x")
 
         # Output panes
-        panes = ttk.Frame(self, padding=(18, 0, 18, 18))
-        panes.pack(fill="both", expand=True)
+        lower = tk.Frame(root, bg="#051024")
+        lower.pack(fill="x", padx=22, pady=(8, 0))
+        tk.Label(lower, text="All that remains...", fg="#63dcff", bg="#051024", font=("Segoe UI", 28, "bold")).pack(anchor="w")
+        self.artifact_link = tk.Label(lower, text="Artifact path will appear after Crystal lock.", fg="#8adfff", bg="#051024", cursor="hand2", font=("Consolas", 14, "underline"))
+        self.artifact_link.pack(anchor="w", pady=(8, 8))
+        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
 
-        self.event_view = tk.Text(panes, height=16, bg="#0f171e", fg="#d9f2ff",
-                                  insertbackground="#d9f2ff", wrap="word", relief="flat")
-        self.event_view.pack(fill="both", expand=True, pady=(0,10))
+        self.status_line = tk.Label(root, text="Run: waiting", fg="#8adfff", bg="#051024", font=("Consolas", 15))
+        self.status_line.pack(side="bottom", anchor="w", padx=22, pady=(6, 12))
 
-        self.output_box = tk.Text(panes, height=6, bg="#0f171e", fg="#d9f2ff",
-                                  insertbackground="#d9f2ff", wrap="word", relief="flat")
-        self.output_box.pack(fill="x")
+        self.event_view = tk.Text(root, height=2, bg="#051024", fg="#051024", relief="flat", borderwidth=0)
+        self.output_box = tk.Text(root, height=2, bg="#051024", fg="#051024", relief="flat", borderwidth=0)
 
     # ─────────────────────────────────────────────
     # LADDER ANIMATION (only unfinished)
@@ -244,14 +248,15 @@ class IceCrawlerUI(tk.Tk):
         glow = "⬤" if pulse < 8 else "◉"
         for p in PHASES:
             if not self.phase_truth[p]:
-                self.phase_labels[p].configure(text=f"{glow} {p}")
+                self._phase_dots[p].configure(text=glow)
         self.after(200, self._animate)
 
     def _lock(self, phase):
         if self.phase_truth.get(phase):
             return
         self.phase_truth[phase] = True
-        self.phase_labels[phase].configure(text=f"✓ {phase}", style="Locked.TLabel")
+        self._phase_dots[phase].configure(text="●", fg="#35ffb2")
+        self.phase_labels[phase].configure(fg="#35ffb2")
 
     def _set_progress_from_events(self, events: str):
         if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
@@ -304,8 +309,12 @@ class IceCrawlerUI(tk.Tk):
 
         self.output_box.delete("1.0","end")
         self.output_box.insert("end", f"Run: {self.run_path}\n")
+        self.status_line.configure(text=f"Run: {self.run_path}")
         if ai_path:
             self.output_box.insert("end", f"\nAI Handoff:\n{ai_path}\n")
+            self.artifact_link.configure(text=ai_path, fg="#8adfff")
+        else:
+            self.artifact_link.configure(text="Artifact path will appear after Crystal lock.", fg="#8adfff")
         if seal:
             self.output_box.insert("end", f"\nSeal:\n{seal}\n")
 
@@ -313,21 +322,30 @@ class IceCrawlerUI(tk.Tk):
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
-            self.phase_labels[p].configure(text=f"⬤ {p}", style="Phase.TLabel")
+            self.phase_labels[p].configure(fg="#63dcff")
+            self._phase_dots[p].configure(text="○", fg="#63dcff")
 
-    def open_run_folder(self):
-        if self.run_path and os.path.exists(self.run_path):
-            try:
-                if sys.platform.startswith("win"):
-                    os.startfile(self.run_path)
-                elif sys.platform == "darwin":
-                    subprocess.Popen(["open", self.run_path])
-                else:
-                    subprocess.Popen(["xdg-open", self.run_path])
-            except Exception as e:
-                messagebox.showerror("ICE-CRAWLER", str(e))
-        else:
+    def open_artifact_folder(self):
+        if not self.run_path:
             messagebox.showinfo("ICE-CRAWLER", "No run folder yet.")
+            return
+        ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
+        if ai_path and os.path.exists(ai_path):
+            target = ai_path
+        elif self.run_path and os.path.exists(self.run_path):
+            target = self.run_path
+        else:
+            messagebox.showinfo("ICE-CRAWLER", "No artifact path yet.")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(target)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", target])
+            else:
+                subprocess.Popen(["xdg-open", target])
+        except Exception as e:
+            messagebox.showerror("ICE-CRAWLER", str(e))
 
     # ─────────────────────────────────────────────
     # SUBMIT (spawns orchestrator; still fossil-driven UI updates)
@@ -343,7 +361,7 @@ class IceCrawlerUI(tk.Tk):
             return
 
         self.running = True
-        self.submit_btn.configure(state="disabled")
+        self.submit_btn.configure(state="disabled", text="RUNNING...")
         self.progress["value"] = 12
 
         run_dir = new_run_dir()
@@ -369,7 +387,7 @@ class IceCrawlerUI(tk.Tk):
             while True:
                 tag, rc, payload = self.q.get_nowait()
                 self.running = False
-                self.submit_btn.configure(state="normal")
+                self.submit_btn.configure(state="normal", text="▼  RUN ICE CRAWLER")
                 if tag == "ERR":
                     messagebox.showerror("ICE-CRAWLER", f"Run error:\n\n{payload}")
         except queue.Empty:
