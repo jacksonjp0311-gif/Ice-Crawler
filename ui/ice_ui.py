@@ -1,4 +1,4 @@
-﻿# ui/ice_ui.py
+# ui/ice_ui.py
 # ❄ ICE-CRAWLER UI v4.3D — Event-Truth + Photo-Lock Control Surface
 #
 # IMMUTABLE UI LAW
@@ -84,7 +84,11 @@ def new_run_dir():
 # ─────────────────────────────────────────────────────────────
 def run_orchestrator(repo_url: str, out_run_dir: str):
     # Dev: sys.executable=python.exe ; Frozen: sys.executable=IceCrawler.exe runtime
-    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120"]
+    temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
+    if is_frozen():
+        cmd = [sys.executable, "--orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
+    else:
+        cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
     p = subprocess.run(
         cmd,
         cwd=repo_root(),
@@ -103,6 +107,23 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
 # ─────────────────────────────────────────────────────────────
 # PHOTO-LOCK STYLING (Tkinter only; no external deps)
 # ─────────────────────────────────────────────────────────────
+
+
+def apply_window_icon(root: tk.Tk):
+    """Best-effort app icon loader (snowflake)."""
+    try:
+        ico = os.path.join(ui_dir(), "assets", "snowflake.ico")
+        png = os.path.join(ui_dir(), "assets", "snowflake.png")
+        if os.path.exists(ico):
+            root.iconbitmap(ico)
+            return
+        if os.path.exists(png):
+            img = tk.PhotoImage(file=png)
+            root.iconphoto(True, img)
+            root._icon_ref = img
+    except Exception:
+        pass
+
 def apply_photo_lock_style(root: tk.Tk):
     style = ttk.Style(root)
     try:
@@ -131,6 +152,7 @@ class IceCrawlerUI(tk.Tk):
         self.geometry("980x860")
         self.configure(bg="#0b1116")
 
+        apply_window_icon(self)
         apply_photo_lock_style(self)
 
         self.q = queue.Queue()
@@ -232,14 +254,20 @@ class IceCrawlerUI(tk.Tk):
         self.phase_labels[phase].configure(text=f"✓ {phase}", style="Locked.TLabel")
 
     def _set_progress_from_events(self, events: str):
-        if "RESIDUE_LOCK" in events:
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
             self.progress["value"] = 100
         elif "CRYSTAL_VERIFIED" in events:
             self.progress["value"] = 85
+        elif "CRYSTAL_PENDING" in events:
+            self.progress["value"] = 70
         elif "GLACIER_VERIFIED" in events:
             self.progress["value"] = 55
+        elif "GLACIER_PENDING" in events:
+            self.progress["value"] = 40
         elif "FROST_VERIFIED" in events:
             self.progress["value"] = 25
+        elif "FROST_PENDING" in events:
+            self.progress["value"] = 18
         else:
             self.progress["value"] = 10
 
@@ -258,7 +286,8 @@ class IceCrawlerUI(tk.Tk):
         if "FROST_VERIFIED" in events:   self._lock("Frost")
         if "GLACIER_VERIFIED" in events: self._lock("Glacier")
         if "CRYSTAL_VERIFIED" in events: self._lock("Crystal")
-        if "RESIDUE_LOCK" in events:     self._lock("Residue")
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+            self._lock("Residue")
 
         self._set_progress_from_events(events)
 
@@ -267,7 +296,11 @@ class IceCrawlerUI(tk.Tk):
 
         # Artifact pointers (read-only)
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
-        seal    = read_text(os.path.join(self.run_path, "root_seal.txt")).strip()
+        seal = ""
+        if ai_path:
+            seal = read_text(os.path.join(ai_path, "root_seal.txt")).strip()
+        if not seal:
+            seal = read_text(os.path.join(self.run_path, "root_seal.txt")).strip()
 
         self.output_box.delete("1.0","end")
         self.output_box.insert("end", f"Run: {self.run_path}\n")
@@ -276,10 +309,21 @@ class IceCrawlerUI(tk.Tk):
         if seal:
             self.output_box.insert("end", f"\nSeal:\n{seal}\n")
 
+
+    def _reset_phase_ladder(self):
+        self.phase_truth = {p: False for p in PHASES}
+        for p in PHASES:
+            self.phase_labels[p].configure(text=f"⬤ {p}", style="Phase.TLabel")
+
     def open_run_folder(self):
         if self.run_path and os.path.exists(self.run_path):
             try:
-                os.startfile(self.run_path)
+                if sys.platform.startswith("win"):
+                    os.startfile(self.run_path)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", self.run_path])
+                else:
+                    subprocess.Popen(["xdg-open", self.run_path])
             except Exception as e:
                 messagebox.showerror("ICE-CRAWLER", str(e))
         else:
@@ -305,6 +349,8 @@ class IceCrawlerUI(tk.Tk):
         run_dir = new_run_dir()
         write_latest_run_path(run_dir)
         self.run_path = run_dir
+        self.last_events = ""
+        self._reset_phase_ladder()
 
         def work():
             try:
@@ -333,4 +379,11 @@ class IceCrawlerUI(tk.Tk):
         self.after(350, self._pump)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--orchestrator":
+        root = repo_root()
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        from engine.orchestrator import main as orchestrator_main
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        raise SystemExit(orchestrator_main())
     IceCrawlerUI().mainloop()
