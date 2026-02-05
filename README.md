@@ -79,6 +79,12 @@ Set-Location .\Ice-Crawler
 
 ## Launch from repository root (single canonical entrypoint)
 
+### Windows one-click start (recommended)
+
+After cloning, double-click **`IceCrawler.cmd`** in the repo root.
+
+This is the single-click launcher and is designed to always use Python runtime (avoids broken EXE runtime/ordinal issues).
+
 Use **one entrypoint** for all environments:
 
 ```bash
@@ -93,8 +99,8 @@ python .\icecrawler.py
 
 What this does:
 
-- Windows: tries `IceCrawler.exe` / built EXE locations first, then **auto-falls back to Python UI** if EXE is missing or broken.
-- macOS/Linux: runs Python UI directly.
+- Default on all platforms: runs Python UI directly for reliability.
+- Optional Windows EXE mode: `python icecrawler.py --prefer-exe` (falls back to Python if EXE fails).
 
 ### Optional helper scripts
 
@@ -110,6 +116,15 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build\build_windows_exe.ps1
 ```
 
 This outputs `dist\IceCrawler.exe`.
+
+### Snowflake app icon
+
+The UI now attempts to load an app icon from:
+
+- `ui/assets/snowflake.ico` (Windows preferred)
+- `ui/assets/snowflake.png` (fallback)
+
+If you place either file there, the window icon will update automatically.
 
 ## Running the UI
 

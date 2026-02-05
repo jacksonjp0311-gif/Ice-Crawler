@@ -41,10 +41,18 @@ def main() -> int:
         return _run_python(args)
 
     # Python users should always be able to run this reliably.
-    if platform.system() != "Windows" or os.environ.get("ICE_CRAWLER_FORCE_PYTHON") == "1":
+    if os.environ.get("ICE_CRAWLER_FORCE_PYTHON") == "1":
         return _run_python(args)
 
-    # On Windows, attempt EXE first, then auto-fallback to Python if EXE is missing/broken.
+    # Default behavior is interpreter-first reliability for all platforms.
+    # Opt-in EXE launch only when explicitly requested.
+    if "--prefer-exe" not in args:
+        return _run_python(args)
+
+    args = [a for a in args if a != "--prefer-exe"]
+    if platform.system() != "Windows":
+        return _run_python(args)
+
     rc = _run_exe(args)
     if rc is None or rc != 0:
         return _run_python(args)

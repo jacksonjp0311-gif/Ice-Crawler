@@ -107,6 +107,23 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
 # ─────────────────────────────────────────────────────────────
 # PHOTO-LOCK STYLING (Tkinter only; no external deps)
 # ─────────────────────────────────────────────────────────────
+
+
+def apply_window_icon(root: tk.Tk):
+    """Best-effort app icon loader (snowflake)."""
+    try:
+        ico = os.path.join(ui_dir(), "assets", "snowflake.ico")
+        png = os.path.join(ui_dir(), "assets", "snowflake.png")
+        if os.path.exists(ico):
+            root.iconbitmap(ico)
+            return
+        if os.path.exists(png):
+            img = tk.PhotoImage(file=png)
+            root.iconphoto(True, img)
+            root._icon_ref = img
+    except Exception:
+        pass
+
 def apply_photo_lock_style(root: tk.Tk):
     style = ttk.Style(root)
     try:
@@ -135,6 +152,7 @@ class IceCrawlerUI(tk.Tk):
         self.geometry("980x860")
         self.configure(bg="#0b1116")
 
+        apply_window_icon(self)
         apply_photo_lock_style(self)
 
         self.q = queue.Queue()
