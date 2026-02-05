@@ -59,6 +59,22 @@ UI entrypoint:
 - Git CLI available on PATH
 - Network access for remote repository telemetry/clone
 
+## Clone this repository
+
+### Bash (Linux/macOS)
+
+```bash
+git clone https://github.com/<your-org>/Ice-Crawler.git
+cd Ice-Crawler
+```
+
+### PowerShell (Windows)
+
+```powershell
+git clone https://github.com/<your-org>/Ice-Crawler.git
+Set-Location .\Ice-Crawler
+```
+
 ## Running the UI
 
 ### Bash (Linux/macOS)
