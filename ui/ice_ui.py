@@ -211,6 +211,7 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = ""
         self.run_path = read_latest_run_path()
 
+        self._phase_dots = {}
         self._build()
 
         self.after(200, self._animate)
@@ -269,6 +270,7 @@ class IceCrawlerUI(tk.Tk):
             lbl.pack(side="left", padx=(10, 0))
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
+            self._phase_dots[p] = dot
 
         self.progress_canvas = tk.Canvas(shell, height=24, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=26, pady=(2, 14))
