@@ -1,4 +1,4 @@
-﻿# ui/ice_ui.py
+# ui/ice_ui.py
 # ❄ ICE-CRAWLER UI v4.3D — Event-Truth + Photo-Lock Control Surface
 #
 # IMMUTABLE UI LAW
@@ -84,7 +84,8 @@ def new_run_dir():
 # ─────────────────────────────────────────────────────────────
 def run_orchestrator(repo_url: str, out_run_dir: str):
     # Dev: sys.executable=python.exe ; Frozen: sys.executable=IceCrawler.exe runtime
-    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120"]
+    temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
+    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
     p = subprocess.run(
         cmd,
         cwd=repo_root(),
@@ -232,14 +233,20 @@ class IceCrawlerUI(tk.Tk):
         self.phase_labels[phase].configure(text=f"✓ {phase}", style="Locked.TLabel")
 
     def _set_progress_from_events(self, events: str):
-        if "RESIDUE_LOCK" in events:
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
             self.progress["value"] = 100
         elif "CRYSTAL_VERIFIED" in events:
             self.progress["value"] = 85
+        elif "CRYSTAL_PENDING" in events:
+            self.progress["value"] = 70
         elif "GLACIER_VERIFIED" in events:
             self.progress["value"] = 55
+        elif "GLACIER_PENDING" in events:
+            self.progress["value"] = 40
         elif "FROST_VERIFIED" in events:
             self.progress["value"] = 25
+        elif "FROST_PENDING" in events:
+            self.progress["value"] = 18
         else:
             self.progress["value"] = 10
 
@@ -258,7 +265,8 @@ class IceCrawlerUI(tk.Tk):
         if "FROST_VERIFIED" in events:   self._lock("Frost")
         if "GLACIER_VERIFIED" in events: self._lock("Glacier")
         if "CRYSTAL_VERIFIED" in events: self._lock("Crystal")
-        if "RESIDUE_LOCK" in events:     self._lock("Residue")
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+            self._lock("Residue")
 
         self._set_progress_from_events(events)
 
@@ -276,10 +284,21 @@ class IceCrawlerUI(tk.Tk):
         if seal:
             self.output_box.insert("end", f"\nSeal:\n{seal}\n")
 
+
+    def _reset_phase_ladder(self):
+        self.phase_truth = {p: False for p in PHASES}
+        for p in PHASES:
+            self.phase_labels[p].configure(text=f"⬤ {p}", style="Phase.TLabel")
+
     def open_run_folder(self):
         if self.run_path and os.path.exists(self.run_path):
             try:
-                os.startfile(self.run_path)
+                if sys.platform.startswith("win"):
+                    os.startfile(self.run_path)
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", self.run_path])
+                else:
+                    subprocess.Popen(["xdg-open", self.run_path])
             except Exception as e:
                 messagebox.showerror("ICE-CRAWLER", str(e))
         else:
@@ -305,6 +324,8 @@ class IceCrawlerUI(tk.Tk):
         run_dir = new_run_dir()
         write_latest_run_path(run_dir)
         self.run_path = run_dir
+        self.last_events = ""
+        self._reset_phase_ladder()
 
         def work():
             try:
