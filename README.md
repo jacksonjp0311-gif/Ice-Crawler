@@ -123,7 +123,7 @@ If you place either file there, the window icon will update automatically.
 python icecrawler.py
 ```
 
-Then paste a repository URL and click **Run**.
+Then paste a repository URL and click the glowing triangle **PRESS TO SUBMIT TO ICE CRAWLER** control.
 
 ### PowerShell (Windows)
 
@@ -131,7 +131,7 @@ Then paste a repository URL and click **Run**.
 python .\icecrawler.py
 ```
 
-Then paste a repository URL and click **Run**.
+Then paste a repository URL and click the glowing triangle **PRESS TO SUBMIT TO ICE CRAWLER** control.
 
 ## Running orchestrator directly (CLI)
 
