@@ -237,10 +237,16 @@ class IceCrawlerUI(tk.Tk):
             self.progress["value"] = 100
         elif "CRYSTAL_VERIFIED" in events:
             self.progress["value"] = 85
+        elif "CRYSTAL_PENDING" in events:
+            self.progress["value"] = 70
         elif "GLACIER_VERIFIED" in events:
             self.progress["value"] = 55
+        elif "GLACIER_PENDING" in events:
+            self.progress["value"] = 40
         elif "FROST_VERIFIED" in events:
             self.progress["value"] = 25
+        elif "FROST_PENDING" in events:
+            self.progress["value"] = 18
         else:
             self.progress["value"] = 10
 

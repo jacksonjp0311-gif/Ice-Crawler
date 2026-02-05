@@ -9,7 +9,7 @@ ICE-CRAWLER ingests an untrusted repository through three isolated engines—**F
 ICE-CRAWLER is designed for **containment-first** repository analysis:
 
 - **Frost (telemetry):** resolves repository metadata (for example HEAD) without cloning.
-- **Glacier (ephemeral materialization):** performs a shallow clone into temporary workspace and bounded file selection.
+- **Glacier (ephemeral materialization):** performs a shallow clone into temporary workspace and deterministic triadic-balanced bounded file selection.
 - **Crystal (deterministic crystallization):** generates read-only analysis artifacts and hash manifests.
 - **Residue lock:** teardown is enforced and recorded as a final completion event.
 
@@ -45,6 +45,8 @@ Core orchestration entrypoint:
 UI entrypoint:
 
 - `ui/ice_ui.py`
+
+Recent enhancement: Glacier now uses a deterministic **triadic-balanced selector** (frost/glacier/crystal buckets) to keep artifact projection diverse and bounded while preserving deterministic ordering.
 
 ## Repository layout
 
@@ -123,12 +125,14 @@ Argument order:
 
 ## UI truth contract
 
-The UI phase ladder locks only on engine-emitted events from `ui_events.jsonl`:
+The UI phase ladder and progress are driven by engine-emitted events from `ui_events.jsonl`:
 
-- `FROST_VERIFIED`
-- `GLACIER_VERIFIED`
-- `CRYSTAL_VERIFIED`
+- `FROST_PENDING` / `FROST_VERIFIED`
+- `GLACIER_PENDING` / `GLACIER_VERIFIED`
+- `CRYSTAL_PENDING` / `CRYSTAL_VERIFIED`
 - `RESIDUE_EMPTY_LOCK` (or legacy `RESIDUE_LOCK`)
+
+Compatibility aliases may also appear in the form `UI_EVENT:<name>`.
 
 This keeps the UI law-coherent: render truth, never invent it.
 
@@ -145,6 +149,11 @@ Inside each run directory (`state/runs/<run>/`):
 - `crystal_report.md`
 - `residue_truth.json`
 - `ai_handoff/` (+ `ai_handoff_path.txt`)
+
+## Formal docs in this repo
+
+- `docs/ICE_CRAWLER_ARCHITECTURE_v1_1.md` — architecture overview and invariants.
+- `docs/CODEX_777_TRIADIC_BOUNDARY_EXCESS_v2_0.md` — boundary-excess principle note and engineering interpretation.
 
 ## Troubleshooting
 
