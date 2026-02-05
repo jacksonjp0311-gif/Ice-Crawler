@@ -1,4 +1,4 @@
-﻿# ui/ice_ui.py
+# ui/ice_ui.py
 # ❄ ICE-CRAWLER UI v4.3D — Event-Truth + Photo-Lock Control Surface
 #
 # IMMUTABLE UI LAW
@@ -84,7 +84,8 @@ def new_run_dir():
 # ─────────────────────────────────────────────────────────────
 def run_orchestrator(repo_url: str, out_run_dir: str):
     # Dev: sys.executable=python.exe ; Frozen: sys.executable=IceCrawler.exe runtime
-    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120"]
+    temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
+    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
     p = subprocess.run(
         cmd,
         cwd=repo_root(),
@@ -258,7 +259,8 @@ class IceCrawlerUI(tk.Tk):
         if "FROST_VERIFIED" in events:   self._lock("Frost")
         if "GLACIER_VERIFIED" in events: self._lock("Glacier")
         if "CRYSTAL_VERIFIED" in events: self._lock("Crystal")
-        if "RESIDUE_LOCK" in events:     self._lock("Residue")
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+            self._lock("Residue")
 
         self._set_progress_from_events(events)
 

@@ -1,8 +1,8 @@
-﻿import os, sys, json, shutil, subprocess, datetime, time, stat
+import os, sys, json, shutil, subprocess, datetime, time, stat
 
-from frost   import frost_telemetry
-from glacier import glacier_clone, glacier_select, glacier_emit
-from crystal import sha256_file, sha256_text, crystal_seal
+from .frost import frost_telemetry
+from .glacier import glacier_clone, glacier_select, glacier_emit
+from .crystal import sha256_file, sha256_text, crystal_seal
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
