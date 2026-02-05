@@ -3,6 +3,7 @@
 
 import os
 import queue
+import random
 import subprocess
 import sys
 import threading
@@ -108,7 +109,7 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
 
 
 class GlowTriangleButton(tk.Canvas):
-    def __init__(self, master, command=None, w=122, h=96, **kw):
+    def __init__(self, master, command=None, w=104, h=86, **kw):
         super().__init__(master, width=w, height=h, bg=BG, highlightthickness=0, bd=0, **kw)
         self.w = w
         self.h = h
@@ -123,10 +124,7 @@ class GlowTriangleButton(tk.Canvas):
         self._draw()
 
     def set_enabled(self, enabled: bool):
-        if enabled:
-            self.configure(state="normal")
-        else:
-            self.configure(state="disabled")
+        self.configure(state="normal" if enabled else "disabled")
         self._draw()
 
     def _on_enter(self, _):
@@ -161,10 +159,10 @@ class GlowTriangleButton(tk.Canvas):
             edge_inner = BLUE
             fill = "#08b0d8" if (self.hover or self.pressed) else "#0a8fb2"
 
-        left_x, right_x, top_y, bottom_y = 16, self.w - 16, 14, self.h - 14
+        left_x, right_x, top_y, bottom_y = 15, self.w - 15, 10, self.h - 10
         mid_x = self.w // 2
 
-        for i in range(9):
+        for i in range(7):
             self.create_polygon(
                 left_x - i, top_y + i,
                 right_x + i, top_y + i,
@@ -174,20 +172,20 @@ class GlowTriangleButton(tk.Canvas):
                 width=2,
             )
 
-        for i in range(7):
+        for i in range(5):
             self.create_polygon(
-                left_x + 10 - i, top_y + 14 + i,
-                right_x - 10 + i, top_y + 14 + i,
-                mid_x, bottom_y - 8 + i,
+                left_x + 8 - i, top_y + 11 + i,
+                right_x - 8 + i, top_y + 11 + i,
+                mid_x, bottom_y - 7 + i,
                 fill="",
                 outline=edge_inner,
                 width=2,
             )
 
         self.create_polygon(
-            left_x + 12, top_y + 18,
-            right_x - 12, top_y + 18,
-            mid_x, bottom_y - 12,
+            left_x + 11, top_y + 14,
+            right_x - 11, top_y + 14,
+            mid_x, bottom_y - 10,
             fill=fill,
             outline=BLUE2,
             width=2,
@@ -198,9 +196,14 @@ class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ICE-CRAWLER ❄")
-        self.geometry("1120x760")
-        self.minsize(980, 700)
+        self.geometry("1160x760")
+        self.minsize(1000, 700)
         self.configure(bg=BG)
+
+        self._bg_image = None
+        self._phase_dots = {}
+        self._stars = []
+        self.phase_labels = {}
 
         self._bg_image = None
         self._status_after = None
@@ -215,26 +218,33 @@ class IceCrawlerUI(tk.Tk):
         self._build()
 
         self.after(200, self._animate)
+        self.after(80, self._animate_stars)
         self.after(300, self._pump)
         self._refresh_from_fossils(force=True)
 
     def _build(self):
-        bg = tk.Canvas(self, bg=BG, highlightthickness=0, bd=0)
-        bg.place(x=0, y=0, relwidth=1, relheight=1)
-        self.bg_canvas = bg
+        self.bg_canvas = tk.Canvas(self, bg=BG, highlightthickness=0, bd=0)
+        self.bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
         self._paint_background()
+        self._init_stars()
         self.bind("<Configure>", lambda _e: self._paint_background())
 
         shell = tk.Frame(self, bg=BG)
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=22, pady=(16, 2))
-        tk.Label(header, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 28, "bold")).pack(anchor="w")
-        tk.Label(header, text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader", fg=BLUE, bg=BG, font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        header.pack(fill="x", padx=20, pady=(16, 4))
+        tk.Label(header, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(anchor="w")
+        tk.Label(
+            header,
+            text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
+            fg=BLUE,
+            bg=BG,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w")
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=22, pady=(10, 10))
+        top.pack(fill="x", padx=20, pady=(8, 10))
 
         self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
         self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
@@ -243,30 +253,38 @@ class IceCrawlerUI(tk.Tk):
         self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
         self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
 
-        tri = tk.Frame(top, bg=BG)
-        tri.pack(side="left", padx=(18, 0))
-        self.submit_btn = GlowTriangleButton(tri, command=self.on_submit, w=96, h=78)
-        self.submit_btn.pack()
+        action_panel = tk.Frame(top, bg=BG)
+        action_panel.pack(side="left", padx=(14, 0))
+
+        button_row = tk.Frame(action_panel, bg=BG)
+        button_row.pack(anchor="w")
+        self.submit_btn = GlowTriangleButton(button_row, command=self.on_submit, w=104, h=86)
+        self.submit_btn.pack(side="left")
+
         self.submit_lbl = tk.Label(
-            tri,
+            button_row,
             text="PRESS TO SUBMIT\nTO ICE CRAWLER",
             fg=ORANGE,
             bg=BG,
-            justify="center",
-            font=("Segoe UI", 10, "bold"),
+            justify="left",
+            font=("Segoe UI", 11, "bold"),
         )
-        self.submit_lbl.pack(pady=(6, 0))
+        self.submit_lbl.pack(side="left", padx=(8, 0))
+
+        self._submit_line_1 = tk.Frame(action_panel, bg=ORANGE, height=1, width=240)
+        self._submit_line_1.pack(anchor="w", pady=(5, 0))
+        self._submit_line_2 = tk.Frame(action_panel, bg=ORANGE, height=1, width=170)
+        self._submit_line_2.pack(anchor="w", pady=(3, 0))
 
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=22, pady=(4, 8))
+        phase_block.pack(fill="x", padx=20, pady=(4, 6))
 
-        self.phase_labels = {}
         for p in PHASES:
             row = tk.Frame(phase_block, bg=BG)
             row.pack(anchor="w", pady=2)
-            dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold"))
+            dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 22, "bold"))
             dot.pack(side="left")
-            lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold"))
+            lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 16, "bold"))
             lbl.pack(side="left", padx=(8, 0))
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
@@ -390,11 +408,102 @@ class IceCrawlerUI(tk.Tk):
             self.url_entry.configure(fg=DIM)
             self._placeholder_active = True
 
+        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
+        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
+        self._draw_progress(0)
+
+        lower = tk.Frame(shell, bg=BG)
+        lower.pack(fill="x", padx=20, pady=(0, 2))
+        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 17, "bold")).pack(anchor="w")
+        self.artifact_link = tk.Label(
+            lower,
+            text="Artifact path will appear after Crystal lock.",
+            fg=BLUE2,
+            bg=BG,
+            cursor="hand2",
+            font=("Consolas", 12, "underline"),
+        )
+        self.artifact_link.pack(anchor="w", pady=(6, 0))
+        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+
+        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 12))
+        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
+
+    def _paint_background(self):
+        c = self.bg_canvas
+        c.delete("bg")
+        w = max(c.winfo_width(), 2)
+        h = max(c.winfo_height(), 2)
+
+        bg_path = os.path.join(ui_dir(), "assets", "background.png")
+        if os.path.exists(bg_path):
+            try:
+                self._bg_image = tk.PhotoImage(file=bg_path)
+                c.create_image(0, 0, image=self._bg_image, anchor="nw", tags="bg")
+                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="", tags="bg")
+                return
+            except Exception:
+                self._bg_image = None
+
+        for i in range(0, h, 3):
+            blend = int(10 + (i / h) * 30)
+            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
+            c.create_line(0, i, w, i, fill=color, tags="bg")
+
+        for y in [170, 420, 700]:
+            c.create_line(0, y, w, y, fill="#0db7ff", width=2, tags="bg")
+            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2, tags="bg")
+
+    def _init_stars(self):
+        self._stars = []
+        w = max(self.bg_canvas.winfo_width(), 1160)
+        h = max(self.bg_canvas.winfo_height(), 760)
+        for _ in range(90):
+            x = random.randint(0, w)
+            y = random.randint(0, h)
+            size = random.choice([1, 1, 1, 2])
+            color = random.choice(["#a8ecff", "#6fdcff", "#f0ffff"])
+            sid = self.bg_canvas.create_oval(x, y, x + size, y + size, fill=color, outline="", tags="star")
+            self._stars.append({"id": sid, "x": x, "y": y, "size": size, "speed": random.uniform(0.08, 0.35)})
+
+    def _animate_stars(self):
+        if not self._stars:
+            self._init_stars()
+        h = max(self.bg_canvas.winfo_height(), 760)
+        w = max(self.bg_canvas.winfo_width(), 1160)
+        for s in self._stars:
+            s["y"] += s["speed"]
+            if s["y"] > h:
+                s["y"] = 0
+                s["x"] = random.randint(0, w)
+            self.bg_canvas.coords(s["id"], s["x"], s["y"], s["x"] + s["size"], s["y"] + s["size"])
+        self.after(80, self._animate_stars)
+
+    def _on_url_focus_in(self, _):
+        if self._placeholder_active:
+            self.url_entry.delete(0, "end")
+            self.url_entry.configure(fg=BLUE2)
+            self._placeholder_active = False
+
+    def _on_url_focus_out(self, _):
+        if not self.url_entry.get().strip():
+            self.url_entry.delete(0, "end")
+            self.url_entry.insert(0, PLACEHOLDER)
+            self.url_entry.configure(fg=DIM)
+            self._placeholder_active = True
+
     def _animate(self):
         glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
         for p in PHASES:
             if not self.phase_truth[p]:
                 self._phase_dots[p].configure(text=glow)
+
+        if self.running:
+            current = self.submit_lbl.cget("fg")
+            self.submit_lbl.configure(fg=ORANGE2 if current == ORANGE else ORANGE)
+        else:
+            self.submit_lbl.configure(fg=ORANGE)
+
         self.after(220, self._animate)
 
     def _lock(self, phase):
@@ -469,14 +578,6 @@ class IceCrawlerUI(tk.Tk):
         self._draw_progress(8)
         self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
 
-    def _flash_submit_label(self):
-        if self.running:
-            current = self.submit_lbl.cget("fg")
-            self.submit_lbl.configure(fg=ORANGE2 if current == ORANGE else ORANGE)
-            self._status_after = self.after(240, self._flash_submit_label)
-        else:
-            self.submit_lbl.configure(fg=ORANGE)
-
     def open_artifact_folder(self):
         if not self.run_path:
             messagebox.showinfo("ICE-CRAWLER", "No run folder yet.")
@@ -512,8 +613,6 @@ class IceCrawlerUI(tk.Tk):
 
         self.running = True
         self.submit_btn.set_enabled(False)
-        self.submit_lbl.configure(text="RUNNING...")
-        self._flash_submit_label()
 
         run_dir = new_run_dir()
         write_latest_run_path(run_dir)
@@ -536,11 +635,13 @@ class IceCrawlerUI(tk.Tk):
                 tag, rc, payload = self.q.get_nowait()
                 self.running = False
                 self.submit_btn.set_enabled(True)
-                self.submit_lbl.configure(text="PRESS TO SUBMIT\nTO ICE CRAWLER")
                 if tag == "ERR":
                     messagebox.showerror("ICE-CRAWLER", f"Run error:\n\n{payload}")
                 elif rc != 0:
-                    messagebox.showerror("ICE-CRAWLER", f"Run failed with exit code {rc}.\nCheck ui_rc.txt/ui_stdout.txt in:\n{payload}")
+                    messagebox.showerror(
+                        "ICE-CRAWLER",
+                        f"Run failed with exit code {rc}.\nCheck ui_rc.txt/ui_stdout.txt in:\n{payload}",
+                    )
         except queue.Empty:
             pass
 
