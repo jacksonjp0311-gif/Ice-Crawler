@@ -198,8 +198,8 @@ class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("ICE-CRAWLER ❄")
-        self.geometry("1360x860")
-        self.minsize(1100, 760)
+        self.geometry("1120x760")
+        self.minsize(980, 700)
         self.configure(bg=BG)
 
         self._bg_image = None
@@ -229,15 +229,15 @@ class IceCrawlerUI(tk.Tk):
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=26, pady=(18, 4))
-        tk.Label(header, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 56, "bold")).pack(anchor="w")
-        tk.Label(header, text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader", fg=BLUE, bg=BG, font=("Segoe UI", 24, "bold")).pack(anchor="w")
+        header.pack(fill="x", padx=22, pady=(16, 2))
+        tk.Label(header, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 28, "bold")).pack(anchor="w")
+        tk.Label(header, text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader", fg=BLUE, bg=BG, font=("Segoe UI", 12, "bold")).pack(anchor="w")
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=26, pady=(10, 12))
+        top.pack(fill="x", padx=22, pady=(10, 10))
 
-        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 24))
-        self.url_entry.pack(side="left", fill="x", expand=True, ipady=10)
+        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
+        self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
         self.url_entry.insert(0, PLACEHOLDER)
         self._placeholder_active = True
         self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
@@ -245,7 +245,7 @@ class IceCrawlerUI(tk.Tk):
 
         tri = tk.Frame(top, bg=BG)
         tri.pack(side="left", padx=(18, 0))
-        self.submit_btn = GlowTriangleButton(tri, command=self.on_submit, w=126, h=104)
+        self.submit_btn = GlowTriangleButton(tri, command=self.on_submit, w=96, h=78)
         self.submit_btn.pack()
         self.submit_lbl = tk.Label(
             tri,
@@ -253,21 +253,21 @@ class IceCrawlerUI(tk.Tk):
             fg=ORANGE,
             bg=BG,
             justify="center",
-            font=("Segoe UI", 20, "bold"),
+            font=("Segoe UI", 10, "bold"),
         )
-        self.submit_lbl.pack(pady=(8, 0))
+        self.submit_lbl.pack(pady=(6, 0))
 
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=26, pady=(6, 12))
+        phase_block.pack(fill="x", padx=22, pady=(4, 8))
 
         self.phase_labels = {}
         for p in PHASES:
             row = tk.Frame(phase_block, bg=BG)
-            row.pack(anchor="w", pady=4)
-            dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 40, "bold"))
+            row.pack(anchor="w", pady=2)
+            dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold"))
             dot.pack(side="left")
-            lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 45, "bold"))
-            lbl.pack(side="left", padx=(10, 0))
+            lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold"))
+            lbl.pack(side="left", padx=(8, 0))
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
             self._phase_dots[p] = dot
@@ -292,6 +292,65 @@ class IceCrawlerUI(tk.Tk):
 
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 30))
         self.status_line.pack(side="bottom", anchor="w", padx=26, pady=(8, 14))
+
+    def _paint_background(self):
+        c = self.bg_canvas
+        c.delete("all")
+        w = max(c.winfo_width(), 2)
+        h = max(c.winfo_height(), 2)
+
+        bg_path = os.path.join(ui_dir(), "assets", "background.png")
+        if os.path.exists(bg_path):
+            try:
+                self._bg_image = tk.PhotoImage(file=bg_path)
+                c.create_image(0, 0, image=self._bg_image, anchor="nw")
+                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="")
+                return
+            except Exception:
+                self._bg_image = None
+
+        for i in range(0, h, 3):
+            blend = int(10 + (i / h) * 30)
+            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
+            c.create_line(0, i, w, i, fill=color)
+
+        for y in [170, 420, 700]:
+            c.create_line(0, y, w, y, fill="#0db7ff", width=2)
+            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2)
+
+    def _on_url_focus_in(self, _):
+        if self._placeholder_active:
+            self.url_entry.delete(0, "end")
+            self.url_entry.configure(fg=BLUE2)
+            self._placeholder_active = False
+
+    def _on_url_focus_out(self, _):
+        if not self.url_entry.get().strip():
+            self.url_entry.delete(0, "end")
+            self.url_entry.insert(0, PLACEHOLDER)
+            self.url_entry.configure(fg=DIM)
+            self._placeholder_active = True
+
+        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
+        self.progress_canvas.pack(fill="x", padx=22, pady=(2, 10))
+        self._draw_progress(0)
+
+        lower = tk.Frame(shell, bg=BG)
+        lower.pack(fill="x", padx=22, pady=(0, 2))
+        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold")).pack(anchor="w")
+        self.artifact_link = tk.Label(
+            lower,
+            text="Artifact path will appear after Crystal lock.",
+            fg=BLUE2,
+            bg=BG,
+            cursor="hand2",
+            font=("Consolas", 12, "underline"),
+        )
+        self.artifact_link.pack(anchor="w", pady=(6, 0))
+        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+
+        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 12))
+        self.status_line.pack(side="bottom", anchor="w", padx=22, pady=(6, 10))
 
     def _paint_background(self):
         c = self.bg_canvas
