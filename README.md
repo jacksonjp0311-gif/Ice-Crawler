@@ -77,6 +77,19 @@ git clone https://github.com/<your-org>/Ice-Crawler.git
 Set-Location .\Ice-Crawler
 ```
 
+## Launch from repository root
+
+Use the root launchers so operators can start the UI from the main project directory:
+
+- `launch_ice_crawler.py` (cross-platform Python launcher)
+- `launch_ice_crawler.sh` (Bash launcher)
+- `launch_ice_crawler.ps1` (PowerShell launcher)
+
+### EXE behavior by platform
+
+- **Windows:** double-click `IceCrawler.exe` in repo root (snowflake-branded app window title: `ICE-CRAWLER ❄`).
+- **macOS/Linux:** `.exe` is a Windows binary; use the launch scripts above or run `python ui/ice_ui.py`.
+
 ## Running the UI
 
 ### Bash (Linux/macOS)
@@ -159,6 +172,7 @@ Inside each run directory (`state/runs/<run>/`):
 
 - **`ModuleNotFoundError` when running orchestrator:** run as module from repo root using `python -m engine.orchestrator ...`.
 - **UI run appears stuck:** inspect `<run>/ui_stdout.txt` and `<run>/ui_rc.txt` for subprocess diagnostics.
+- **Tkinter `no $DISPLAY` error (Linux headless):** this is an environment limitation; run with a desktop session or X server.
 - **Run folder won’t open:** ensure desktop opener is available (`explorer`, `open`, or `xdg-open`).
 
 ## License / attribution

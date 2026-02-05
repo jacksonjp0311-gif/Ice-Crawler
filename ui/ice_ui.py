@@ -85,7 +85,10 @@ def new_run_dir():
 def run_orchestrator(repo_url: str, out_run_dir: str):
     # Dev: sys.executable=python.exe ; Frozen: sys.executable=IceCrawler.exe runtime
     temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
-    cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
+    if is_frozen():
+        cmd = [sys.executable, "--orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
+    else:
+        cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
     p = subprocess.run(
         cmd,
         cwd=repo_root(),
@@ -275,7 +278,11 @@ class IceCrawlerUI(tk.Tk):
 
         # Artifact pointers (read-only)
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
-        seal    = read_text(os.path.join(self.run_path, "root_seal.txt")).strip()
+        seal = ""
+        if ai_path:
+            seal = read_text(os.path.join(ai_path, "root_seal.txt")).strip()
+        if not seal:
+            seal = read_text(os.path.join(self.run_path, "root_seal.txt")).strip()
 
         self.output_box.delete("1.0","end")
         self.output_box.insert("end", f"Run: {self.run_path}\n")
@@ -354,4 +361,11 @@ class IceCrawlerUI(tk.Tk):
         self.after(350, self._pump)
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--orchestrator":
+        root = repo_root()
+        if root not in sys.path:
+            sys.path.insert(0, root)
+        from engine.orchestrator import main as orchestrator_main
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        raise SystemExit(orchestrator_main())
     IceCrawlerUI().mainloop()
