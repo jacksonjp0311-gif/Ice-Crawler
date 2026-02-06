@@ -261,7 +261,10 @@ class IceCrawlerUI(tk.Tk):
 
         header = tk.Frame(shell, bg=BG)
         header.pack(fill="x", padx=20, pady=(16, 4))
-        tk.Label(header, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(anchor="w")
+        title_row = tk.Frame(header, bg=BG)
+        title_row.pack(anchor="w")
+        tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
+        tk.Label(title_row, text="❄", fg=BLUE2, bg=BG, font=("Segoe UI", 22, "bold")).pack(side="left", padx=(10, 0))
         tk.Label(
             header,
             text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
@@ -315,7 +318,7 @@ class IceCrawlerUI(tk.Tk):
             dot.pack(side="left")
             lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 19, "bold"))
             lbl.pack(side="left", padx=(8, 8))
-            reveal = tk.Label(row, text="", fg=BLUE2, bg=BG, font=("Segoe UI", 12, "italic"))
+            reveal = tk.Label(row, text="", fg=ORANGE, bg=BG, font=("Segoe UI", 12, "italic"))
             reveal.pack(side="left")
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
@@ -327,14 +330,14 @@ class IceCrawlerUI(tk.Tk):
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 12, "bold")).pack(anchor="w")
+        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 13, "bold")).pack(anchor="w")
         self.artifact_link = tk.Label(
             lower,
             text="Artifact path will appear after Crystal lock.",
             fg=BLUE2,
             bg=BG,
             cursor="hand2",
-            font=("Consolas", 10, "underline"),
+            font=("Consolas", 11, "underline"),
             wraplength=900,
             justify="left",
         )
@@ -360,7 +363,7 @@ class IceCrawlerUI(tk.Tk):
         if not text:
             return
         reveal.configure(text=text)
-        colors = ["#1a2a33", "#2b4a55", "#3e6a75", "#5aa2b5", BLUE2]
+        colors = ["#2b1b0d", "#5a3410", "#8a4f12", "#c66d18", ORANGE]
         idx = min(step, len(colors) - 1)
         reveal.configure(fg=colors[idx])
         if idx < len(colors) - 1:
