@@ -87,6 +87,17 @@ def new_run_dir():
     return p
 
 
+
+
+def _status_text_for_path(path: str, max_chars: int = 88) -> str:
+    if not path:
+        return "Run: waiting"
+    p = str(path)
+    if len(p) <= max_chars:
+        return f"Run: {p}"
+    return f"Run: ...{p[-(max_chars-8):]}"
+
+
 def run_orchestrator(repo_url: str, out_run_dir: str):
     temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
     if is_frozen():
@@ -116,6 +127,7 @@ class GlowTriangleButton(tk.Canvas):
         self.command = command
         self.hover = False
         self.pressed = False
+        self.vibe_phase = 0
 
         self.bind("<Enter>", self._on_enter)
         self.bind("<Leave>", self._on_leave)
@@ -134,6 +146,7 @@ class GlowTriangleButton(tk.Canvas):
     def _on_leave(self, _):
         self.hover = False
         self.pressed = False
+        self.vibe_phase = 0
         self._draw()
 
     def _on_down(self, _):
@@ -147,6 +160,10 @@ class GlowTriangleButton(tk.Canvas):
         if was_pressed and 0 <= e.x <= self.w and 0 <= e.y <= self.h and self.command:
             self.command()
 
+    def tick(self, running: bool):
+        self.vibe_phase = (self.vibe_phase + 1) % 6 if running else 0
+        self._draw()
+
     def _draw(self):
         self.delete("all")
 
@@ -159,10 +176,13 @@ class GlowTriangleButton(tk.Canvas):
             edge_inner = BLUE
             fill = "#08b0d8" if (self.hover or self.pressed) else "#0a8fb2"
 
-        left_x, right_x, top_y, bottom_y = 15, self.w - 15, 10, self.h - 10
+        jitter = [-1, 0, 1, 0, -1, 1][self.vibe_phase] if str(self.cget("state")) != "disabled" else 0
+        left_x, right_x, top_y, bottom_y = 15 + jitter, self.w - 15 + jitter, 10, self.h - 10
         mid_x = self.w // 2
 
-        for i in range(7):
+        pulse_extra = 1 if self.vibe_phase in (1, 4) else 0
+
+        for i in range(7 + pulse_extra):
             self.create_polygon(
                 left_x - i, top_y + i,
                 right_x + i, top_y + i,
@@ -492,6 +512,92 @@ class IceCrawlerUI(tk.Tk):
             self.url_entry.configure(fg=DIM)
             self._placeholder_active = True
 
+        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
+        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
+        self._draw_progress(0)
+
+        lower = tk.Frame(shell, bg=BG)
+        lower.pack(fill="x", padx=20, pady=(0, 2))
+        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 15, "bold")).pack(anchor="w")
+        self.artifact_link = tk.Label(
+            lower,
+            text="Artifact path will appear after Crystal lock.",
+            fg=BLUE2,
+            bg=BG,
+            cursor="hand2",
+            font=("Consolas", 11, "underline"),
+            wraplength=1080,
+            justify="left",
+        )
+        self.artifact_link.pack(anchor="w", pady=(6, 0))
+        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+
+        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 11))
+        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
+
+    def _paint_background(self):
+        c = self.bg_canvas
+        c.delete("bg")
+        w = max(c.winfo_width(), 2)
+        h = max(c.winfo_height(), 2)
+
+        bg_path = os.path.join(ui_dir(), "assets", "background.png")
+        if os.path.exists(bg_path):
+            try:
+                self._bg_image = tk.PhotoImage(file=bg_path)
+                c.create_image(0, 0, image=self._bg_image, anchor="nw", tags="bg")
+                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="", tags="bg")
+                return
+            except Exception:
+                self._bg_image = None
+
+        for i in range(0, h, 3):
+            blend = int(10 + (i / h) * 30)
+            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
+            c.create_line(0, i, w, i, fill=color, tags="bg")
+
+        for y in [170, 420, 700]:
+            c.create_line(0, y, w, y, fill="#0db7ff", width=2, tags="bg")
+            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2, tags="bg")
+
+    def _init_stars(self):
+        self._stars = []
+        w = max(self.bg_canvas.winfo_width(), 1160)
+        h = max(self.bg_canvas.winfo_height(), 760)
+        for _ in range(90):
+            x = random.randint(0, w)
+            y = random.randint(0, h)
+            size = random.choice([1, 1, 1, 2])
+            color = random.choice(["#a8ecff", "#6fdcff", "#f0ffff"])
+            sid = self.bg_canvas.create_oval(x, y, x + size, y + size, fill=color, outline="", tags="star")
+            self._stars.append({"id": sid, "x": x, "y": y, "size": size, "speed": random.uniform(0.08, 0.35)})
+
+    def _animate_stars(self):
+        if not self._stars:
+            self._init_stars()
+        h = max(self.bg_canvas.winfo_height(), 760)
+        w = max(self.bg_canvas.winfo_width(), 1160)
+        for s in self._stars:
+            s["y"] += s["speed"]
+            if s["y"] > h:
+                s["y"] = 0
+                s["x"] = random.randint(0, w)
+            self.bg_canvas.coords(s["id"], s["x"], s["y"], s["x"] + s["size"], s["y"] + s["size"])
+        self.after(80, self._animate_stars)
+
+    def _on_url_focus_in(self, _):
+        if self._placeholder_active:
+            self.url_entry.delete(0, "end")
+            self.url_entry.configure(fg=BLUE2)
+            self._placeholder_active = False
+
+    def _on_url_focus_out(self, _):
+        if not self.url_entry.get().strip():
+            self.url_entry.delete(0, "end")
+            self.url_entry.insert(0, PLACEHOLDER)
+            self.url_entry.configure(fg=DIM)
+            self._placeholder_active = True
+
     def _animate(self):
         glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
         for p in PHASES:
@@ -504,6 +610,7 @@ class IceCrawlerUI(tk.Tk):
         else:
             self.submit_lbl.configure(fg=ORANGE)
 
+        self.submit_btn.tick(self.running)
         self.after(220, self._animate)
 
     def _lock(self, phase):
@@ -541,6 +648,9 @@ class IceCrawlerUI(tk.Tk):
         if fill_w > 0:
             c.create_rectangle(2, 4, 2 + fill_w, h - 4, outline="", fill="#1eaad5")
 
+    def _status_text_for_run(self, run_path: str):
+        return _status_text_for_path(run_path)
+
     def _refresh_from_fossils(self, force=False):
         if not self.run_path:
             self.status_line.configure(text="Run: waiting")
@@ -564,7 +674,7 @@ class IceCrawlerUI(tk.Tk):
         self._set_progress_from_events(events)
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
-        self.status_line.configure(text=f"Run: {self.run_path}")
+        self.status_line.configure(text=self._status_text_for_run(self.run_path))
         if ai_path:
             self.artifact_link.configure(text=ai_path)
         else:
