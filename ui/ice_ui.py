@@ -264,7 +264,7 @@ class IceCrawlerUI(tk.Tk):
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(anchor="w")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
-        tk.Label(title_row, text="❄", fg=BLUE2, bg=BG, font=("Segoe UI", 22, "bold")).pack(side="left", padx=(10, 0))
+        tk.Label(title_row, text="❄", fg=ORANGE, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left", padx=(10, 0))
         tk.Label(
             header,
             text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
@@ -330,20 +330,33 @@ class IceCrawlerUI(tk.Tk):
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 13, "bold")).pack(anchor="w")
+        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(anchor="w")
         self.artifact_link = tk.Label(
             lower,
             text="Artifact path will appear after Crystal lock.",
             fg=BLUE2,
             bg=BG,
             cursor="hand2",
-            font=("Consolas", 11, "underline"),
+            font=("Consolas", 12, "underline"),
             wraplength=900,
             justify="left",
         )
         self.artifact_link.pack(anchor="w", pady=(6, 0))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
 
+        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=1)
+        self.completion_label = tk.Label(
+            self.completion_frame,
+            text="handoff ready",
+            fg=ORANGE,
+            bg=BG,
+            font=("Segoe UI", 11, "bold"),
+        )
+        self.completion_label.pack(padx=8, pady=4)
+        self.completion_frame.pack(anchor="w", pady=(8, 0))
+        self.completion_frame.pack_forget()
+        self.completion_visible = False
+        self._completion_pulse = 0
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -451,6 +464,10 @@ class IceCrawlerUI(tk.Tk):
             self.submit_lbl.configure(fg=ORANGE)
 
         self.submit_btn.tick(str(self.submit_btn.cget("state")) != "disabled")
+        if getattr(self, "completion_visible", False):
+            self._completion_pulse = (self._completion_pulse + 1) % 6
+            offset = 1 if self._completion_pulse in (1, 4) else 0
+            self.completion_frame.pack_configure(padx=20 + offset)
         self.after(220, self._animate)
 
     def _lock(self, phase):
@@ -522,6 +539,15 @@ class IceCrawlerUI(tk.Tk):
         else:
             self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
 
+        if "RUN_COMPLETE" in events:
+            if not self.completion_visible:
+                self.completion_frame.pack(anchor="w", pady=(8, 0))
+                self.completion_visible = True
+        else:
+            if self.completion_visible:
+                self.completion_frame.pack_forget()
+                self.completion_visible = False
+
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
@@ -531,6 +557,9 @@ class IceCrawlerUI(tk.Tk):
                 self.phase_reveals[p].configure(text="", fg=BLUE2)
             if hasattr(self, "reveal_started"):
                 self.reveal_started[p] = False
+        if hasattr(self, "completion_frame"):
+            self.completion_frame.pack_forget()
+            self.completion_visible = False
         self._draw_progress(8)
         self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
 
