@@ -25,6 +25,13 @@ ORANGE2 = "#ff6a00"
 GREEN = "#3cffbc"
 DIM = "#6fb9c9"
 
+STAGE_REVEALS = {
+    "Frost": "signal detected",
+    "Glacier": "structure stabilizing",
+    "Crystal": "invariant sealed",
+    "Residue": "artifact remains",
+}
+
 
 def is_frozen():
     return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
@@ -299,134 +306,20 @@ class IceCrawlerUI(tk.Tk):
         phase_block = tk.Frame(shell, bg=BG)
         phase_block.pack(fill="x", padx=20, pady=(4, 6))
 
+        self.phase_reveals = {}
+        self.reveal_started = {p: False for p in PHASES}
         for p in PHASES:
             row = tk.Frame(phase_block, bg=BG)
             row.pack(anchor="w", pady=2)
             dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 24, "bold"))
             dot.pack(side="left")
             lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 19, "bold"))
-            lbl.pack(side="left", padx=(8, 0))
+            lbl.pack(side="left", padx=(8, 8))
+            reveal = tk.Label(row, text="", fg=BLUE2, bg=BG, font=("Segoe UI", 12, "italic"))
+            reveal.pack(side="left")
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
-            self._phase_dots[p] = dot
-
-        self.progress_canvas = tk.Canvas(shell, height=24, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=26, pady=(2, 14))
-        self._draw_progress(0)
-
-        lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=26, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 52, "bold")).pack(anchor="w")
-        self.artifact_link = tk.Label(
-            lower,
-            text="Artifact path will appear after Crystal lock.",
-            fg=BLUE2,
-            bg=BG,
-            cursor="hand2",
-            font=("Consolas", 24, "underline"),
-        )
-        self.artifact_link.pack(anchor="w", pady=(8, 0))
-        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
-
-        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 30))
-        self.status_line.pack(side="bottom", anchor="w", padx=26, pady=(8, 14))
-
-    def _paint_background(self):
-        c = self.bg_canvas
-        c.delete("all")
-        w = max(c.winfo_width(), 2)
-        h = max(c.winfo_height(), 2)
-
-        bg_path = os.path.join(ui_dir(), "assets", "background.png")
-        if os.path.exists(bg_path):
-            try:
-                self._bg_image = tk.PhotoImage(file=bg_path)
-                c.create_image(0, 0, image=self._bg_image, anchor="nw")
-                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="")
-                return
-            except Exception:
-                self._bg_image = None
-
-        for i in range(0, h, 3):
-            blend = int(10 + (i / h) * 30)
-            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
-            c.create_line(0, i, w, i, fill=color)
-
-        for y in [170, 420, 700]:
-            c.create_line(0, y, w, y, fill="#0db7ff", width=2)
-            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2)
-
-    def _on_url_focus_in(self, _):
-        if self._placeholder_active:
-            self.url_entry.delete(0, "end")
-            self.url_entry.configure(fg=BLUE2)
-            self._placeholder_active = False
-
-    def _on_url_focus_out(self, _):
-        if not self.url_entry.get().strip():
-            self.url_entry.delete(0, "end")
-            self.url_entry.insert(0, PLACEHOLDER)
-            self.url_entry.configure(fg=DIM)
-            self._placeholder_active = True
-
-        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=22, pady=(2, 10))
-        self._draw_progress(0)
-
-        lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=22, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 18, "bold")).pack(anchor="w")
-        self.artifact_link = tk.Label(
-            lower,
-            text="Artifact path will appear after Crystal lock.",
-            fg=BLUE2,
-            bg=BG,
-            cursor="hand2",
-            font=("Consolas", 12, "underline"),
-        )
-        self.artifact_link.pack(anchor="w", pady=(6, 0))
-        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
-
-        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 12))
-        self.status_line.pack(side="bottom", anchor="w", padx=22, pady=(6, 10))
-
-    def _paint_background(self):
-        c = self.bg_canvas
-        c.delete("all")
-        w = max(c.winfo_width(), 2)
-        h = max(c.winfo_height(), 2)
-
-        bg_path = os.path.join(ui_dir(), "assets", "background.png")
-        if os.path.exists(bg_path):
-            try:
-                self._bg_image = tk.PhotoImage(file=bg_path)
-                c.create_image(0, 0, image=self._bg_image, anchor="nw")
-                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="")
-                return
-            except Exception:
-                self._bg_image = None
-
-        for i in range(0, h, 3):
-            blend = int(10 + (i / h) * 30)
-            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
-            c.create_line(0, i, w, i, fill=color)
-
-        for y in [170, 420, 700]:
-            c.create_line(0, y, w, y, fill="#0db7ff", width=2)
-            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2)
-
-    def _on_url_focus_in(self, _):
-        if self._placeholder_active:
-            self.url_entry.delete(0, "end")
-            self.url_entry.configure(fg=BLUE2)
-            self._placeholder_active = False
-
-    def _on_url_focus_out(self, _):
-        if not self.url_entry.get().strip():
-            self.url_entry.delete(0, "end")
-            self.url_entry.insert(0, PLACEHOLDER)
-            self.url_entry.configure(fg=DIM)
-            self._placeholder_active = True
+            self.phase_reveals[p] = reveal
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
@@ -434,177 +327,7 @@ class IceCrawlerUI(tk.Tk):
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 17, "bold")).pack(anchor="w")
-        self.artifact_link = tk.Label(
-            lower,
-            text="Artifact path will appear after Crystal lock.",
-            fg=BLUE2,
-            bg=BG,
-            cursor="hand2",
-            font=("Consolas", 12, "underline"),
-        )
-        self.artifact_link.pack(anchor="w", pady=(6, 0))
-        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
-
-        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 12))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
-
-    def _paint_background(self):
-        c = self.bg_canvas
-        c.delete("bg")
-        w = max(c.winfo_width(), 2)
-        h = max(c.winfo_height(), 2)
-
-        bg_path = os.path.join(ui_dir(), "assets", "background.png")
-        if os.path.exists(bg_path):
-            try:
-                self._bg_image = tk.PhotoImage(file=bg_path)
-                c.create_image(0, 0, image=self._bg_image, anchor="nw", tags="bg")
-                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="", tags="bg")
-                return
-            except Exception:
-                self._bg_image = None
-
-        for i in range(0, h, 3):
-            blend = int(10 + (i / h) * 30)
-            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
-            c.create_line(0, i, w, i, fill=color, tags="bg")
-
-        for y in [170, 420, 700]:
-            c.create_line(0, y, w, y, fill="#0db7ff", width=2, tags="bg")
-            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2, tags="bg")
-
-    def _init_stars(self):
-        self._stars = []
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        h = max(self.bg_canvas.winfo_height(), 760)
-        for _ in range(90):
-            x = random.randint(0, w)
-            y = random.randint(0, h)
-            size = random.choice([1, 1, 1, 2])
-            color = random.choice(["#a8ecff", "#6fdcff", "#f0ffff"])
-            sid = self.bg_canvas.create_oval(x, y, x + size, y + size, fill=color, outline="", tags="star")
-            self._stars.append({"id": sid, "x": x, "y": y, "size": size, "speed": random.uniform(0.08, 0.35)})
-
-    def _animate_stars(self):
-        if not self._stars:
-            self._init_stars()
-        h = max(self.bg_canvas.winfo_height(), 760)
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        for s in self._stars:
-            s["y"] += s["speed"]
-            if s["y"] > h:
-                s["y"] = 0
-                s["x"] = random.randint(0, w)
-            self.bg_canvas.coords(s["id"], s["x"], s["y"], s["x"] + s["size"], s["y"] + s["size"])
-        self.after(80, self._animate_stars)
-
-    def _on_url_focus_in(self, _):
-        if self._placeholder_active:
-            self.url_entry.delete(0, "end")
-            self.url_entry.configure(fg=BLUE2)
-            self._placeholder_active = False
-
-    def _on_url_focus_out(self, _):
-        if not self.url_entry.get().strip():
-            self.url_entry.delete(0, "end")
-            self.url_entry.insert(0, PLACEHOLDER)
-            self.url_entry.configure(fg=DIM)
-            self._placeholder_active = True
-
-        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
-        self._draw_progress(0)
-
-        lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 15, "bold")).pack(anchor="w")
-        self.artifact_link = tk.Label(
-            lower,
-            text="Artifact path will appear after Crystal lock.",
-            fg=BLUE2,
-            bg=BG,
-            cursor="hand2",
-            font=("Consolas", 11, "underline"),
-            wraplength=1080,
-            justify="left",
-        )
-        self.artifact_link.pack(anchor="w", pady=(6, 0))
-        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
-
-        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 11))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
-
-    def _paint_background(self):
-        c = self.bg_canvas
-        c.delete("bg")
-        w = max(c.winfo_width(), 2)
-        h = max(c.winfo_height(), 2)
-
-        bg_path = os.path.join(ui_dir(), "assets", "background.png")
-        if os.path.exists(bg_path):
-            try:
-                self._bg_image = tk.PhotoImage(file=bg_path)
-                c.create_image(0, 0, image=self._bg_image, anchor="nw", tags="bg")
-                c.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50", outline="", tags="bg")
-                return
-            except Exception:
-                self._bg_image = None
-
-        for i in range(0, h, 3):
-            blend = int(10 + (i / h) * 30)
-            color = f"#{3:02x}{10+blend:02x}{30+blend:02x}"
-            c.create_line(0, i, w, i, fill=color, tags="bg")
-
-        for y in [170, 420, 700]:
-            c.create_line(0, y, w, y, fill="#0db7ff", width=2, tags="bg")
-            c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2, tags="bg")
-
-    def _init_stars(self):
-        self._stars = []
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        h = max(self.bg_canvas.winfo_height(), 760)
-        for _ in range(90):
-            x = random.randint(0, w)
-            y = random.randint(0, h)
-            size = random.choice([1, 1, 1, 2])
-            color = random.choice(["#a8ecff", "#6fdcff", "#f0ffff"])
-            sid = self.bg_canvas.create_oval(x, y, x + size, y + size, fill=color, outline="", tags="star")
-            self._stars.append({"id": sid, "x": x, "y": y, "size": size, "speed": random.uniform(0.08, 0.35)})
-
-    def _animate_stars(self):
-        if not self._stars:
-            self._init_stars()
-        h = max(self.bg_canvas.winfo_height(), 760)
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        for s in self._stars:
-            s["y"] += s["speed"]
-            if s["y"] > h:
-                s["y"] = 0
-                s["x"] = random.randint(0, w)
-            self.bg_canvas.coords(s["id"], s["x"], s["y"], s["x"] + s["size"], s["y"] + s["size"])
-        self.after(80, self._animate_stars)
-
-    def _on_url_focus_in(self, _):
-        if self._placeholder_active:
-            self.url_entry.delete(0, "end")
-            self.url_entry.configure(fg=BLUE2)
-            self._placeholder_active = False
-
-    def _on_url_focus_out(self, _):
-        if not self.url_entry.get().strip():
-            self.url_entry.delete(0, "end")
-            self.url_entry.insert(0, PLACEHOLDER)
-            self.url_entry.configure(fg=DIM)
-            self._placeholder_active = True
-
-        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
-        self._draw_progress(0)
-
-        lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=BLUE2, bg=BG, font=("Segoe UI", 13, "bold")).pack(anchor="w")
+        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 12, "bold")).pack(anchor="w")
         self.artifact_link = tk.Label(
             lower,
             text="Artifact path will appear after Crystal lock.",
@@ -621,6 +344,27 @@ class IceCrawlerUI(tk.Tk):
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
+
+
+    def _queue_reveal(self, phase: str):
+        if self.reveal_started.get(phase):
+            return
+        self.reveal_started[phase] = True
+        self.after(250, lambda: self._fade_in_reveal(phase, 0))
+
+    def _fade_in_reveal(self, phase: str, step: int):
+        reveal = self.phase_reveals.get(phase)
+        if not reveal:
+            return
+        text = STAGE_REVEALS.get(phase, "")
+        if not text:
+            return
+        reveal.configure(text=text)
+        colors = ["#1a2a33", "#2b4a55", "#3e6a75", "#5aa2b5", BLUE2]
+        idx = min(step, len(colors) - 1)
+        reveal.configure(fg=colors[idx])
+        if idx < len(colors) - 1:
+            self.after(50, lambda: self._fade_in_reveal(phase, step + 1))
 
     def _on_resize(self, event):
         self._paint_background()
@@ -712,6 +456,7 @@ class IceCrawlerUI(tk.Tk):
         self.phase_truth[phase] = True
         self._phase_dots[phase].configure(text="●", fg=GREEN)
         self.phase_labels[phase].configure(fg=GREEN)
+        self._queue_reveal(phase)
 
     def _set_progress_from_events(self, events: str):
         if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
@@ -779,6 +524,10 @@ class IceCrawlerUI(tk.Tk):
         for p in PHASES:
             self.phase_labels[p].configure(fg=BLUE2)
             self._phase_dots[p].configure(text="○", fg=BLUE2)
+            if hasattr(self, "phase_reveals") and p in self.phase_reveals:
+                self.phase_reveals[p].configure(text="", fg=BLUE2)
+            if hasattr(self, "reveal_started"):
+                self.reveal_started[p] = False
         self._draw_progress(8)
         self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
 
