@@ -12,10 +12,11 @@ import traceback
 import tkinter as tk
 from tkinter import messagebox
 
-try:
-    from ui.animations import start_snowflake_spin
-except Exception:  # optional animation hook
-    start_snowflake_spin = None
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
+
+from ui.animations import start_snowflake_spin
 
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
@@ -286,8 +287,7 @@ class IceCrawlerUI(tk.Tk):
             bg=BG,
             font=("Segoe UI", 11, "bold"),
         ).pack(anchor="w")
-        if start_snowflake_spin:
-            start_snowflake_spin(self.snowflake_label, self)
+        start_snowflake_spin(self.snowflake_label, self)
 
         top = tk.Frame(shell, bg=BG)
         top.pack(fill="x", padx=20, pady=(8, 10))
@@ -360,19 +360,20 @@ class IceCrawlerUI(tk.Tk):
         self.artifact_link.pack(anchor="w", pady=(6, 0))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
 
-        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=1)
+        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
         self.completion_label = tk.Label(
             self.completion_frame,
-            text="handoff ready",
+            text="handoff complete",
             fg=ORANGE,
             bg=BG,
-            font=("Segoe UI", 11, "bold"),
+            font=("Segoe UI", 12, "bold"),
         )
-        self.completion_label.pack(padx=8, pady=4)
+        self.completion_label.pack(padx=12, pady=6)
         self.completion_frame.pack(anchor="w", pady=(8, 0))
         self.completion_frame.pack_forget()
         self.completion_visible = False
         self._completion_pulse = 0
+        self._completion_flicker = 0
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -484,6 +485,10 @@ class IceCrawlerUI(tk.Tk):
             self._completion_pulse = (self._completion_pulse + 1) % 6
             offset = 1 if self._completion_pulse in (1, 4) else 0
             self.completion_frame.pack_configure(padx=20 + offset)
+            self._completion_flicker = (self._completion_flicker + 1) % 4
+            flicker_color = ORANGE2 if self._completion_flicker in (1, 2) else ORANGE
+            self.completion_label.configure(fg=flicker_color)
+            self.completion_frame.configure(highlightbackground=flicker_color)
         self.after(220, self._animate)
 
     def _lock(self, phase):
@@ -555,7 +560,7 @@ class IceCrawlerUI(tk.Tk):
         else:
             self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
 
-        if "RUN_COMPLETE" in events:
+        if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.completion_visible:
                 self.completion_frame.pack(anchor="w", pady=(8, 0))
                 self.completion_visible = True
