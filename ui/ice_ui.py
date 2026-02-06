@@ -12,6 +12,11 @@ import traceback
 import tkinter as tk
 from tkinter import messagebox
 
+try:
+    from ui.animations import start_snowflake_spin
+except Exception:  # optional animation hook
+    start_snowflake_spin = None
+
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
 EVENT_FILE = "ui_events.jsonl"
@@ -111,12 +116,20 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
         cmd = [sys.executable, "--orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
     else:
         cmd = [sys.executable, "-m", "engine.orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
+    creationflags = 0
+    startupinfo = None
+    if sys.platform.startswith("win"):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     p = subprocess.run(
         cmd,
         cwd=repo_root(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        creationflags=creationflags,
+        startupinfo=startupinfo,
     )
     try:
         open(os.path.join(out_run_dir, "ui_stdout.txt"), "w", encoding="utf-8").write(p.stdout or "")
@@ -264,7 +277,8 @@ class IceCrawlerUI(tk.Tk):
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(anchor="w")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
-        tk.Label(title_row, text="❄", fg=ORANGE, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left", padx=(10, 0))
+        self.snowflake_label = tk.Label(title_row, text="❄", fg=ORANGE, bg=BG, font=("Segoe UI", 30, "bold"))
+        self.snowflake_label.pack(side="left", padx=(10, 0))
         tk.Label(
             header,
             text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
@@ -272,6 +286,8 @@ class IceCrawlerUI(tk.Tk):
             bg=BG,
             font=("Segoe UI", 11, "bold"),
         ).pack(anchor="w")
+        if start_snowflake_spin:
+            start_snowflake_spin(self.snowflake_label, self)
 
         top = tk.Frame(shell, bg=BG)
         top.pack(fill="x", padx=20, pady=(8, 10))
