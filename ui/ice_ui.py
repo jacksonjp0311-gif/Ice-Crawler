@@ -245,12 +245,16 @@ class IceCrawlerUI(tk.Tk):
         self._stars = []
         self.phase_labels = {}
 
+        self._bg_image = None
+        self._status_after = None
+        self._phase_dots = {}
         self.q = queue.Queue()
         self.running = False
         self.phase_truth = {p: False for p in PHASES}
         self.last_events = ""
         self.run_path = read_latest_run_path()
 
+        self._phase_dots = {}
         self._build()
 
         self.after(200, self._animate)
