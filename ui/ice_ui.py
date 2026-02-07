@@ -1,6 +1,7 @@
 # ui/ice_ui.py
 # ❄ ICE-CRAWLER UI — Event-Truth + Photo-Lock Control Surface
 
+import math
 import os
 import queue
 import subprocess
