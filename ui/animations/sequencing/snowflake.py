@@ -39,7 +39,7 @@ def attach_snowflake(parent: tk.Widget, root: tk.Tk, image_path: str | None = No
 
 
 def _draw_snowflake(canvas: tk.Canvas, cx: int, cy: int) -> None:
-    color = "#cfefff"
+    color = "#ff9b1a"
     for dx, dy in ((-12, 0), (12, 0), (0, -12), (0, 12), (-9, -9), (9, 9), (-9, 9), (9, -9)):
         canvas.create_line(cx, cy, cx + dx, cy + dy, fill=color, width=2)
     for dx, dy in ((-6, -2), (-6, 2), (6, -2), (6, 2)):
