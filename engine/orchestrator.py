@@ -1,8 +1,8 @@
-﻿import os, sys, json, shutil, subprocess, datetime, time, stat
+import os, sys, json, shutil, subprocess, datetime, time, stat
 
-from frost   import frost_telemetry
-from glacier import glacier_clone, glacier_select, glacier_emit
-from crystal import sha256_file, sha256_text, crystal_seal
+from .frost import frost_telemetry
+from .glacier import glacier_clone, glacier_select, glacier_emit
+from .crystal import sha256_file, sha256_text, crystal_seal
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
@@ -103,10 +103,12 @@ def main():
     emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
 
     # Frost: telemetry-only
+    emit_ui(state_run, "FROST_PENDING")
     frost = frost_telemetry(repo)
     with open(os.path.join(state_run,"frost_summary.json"),"w",encoding="utf-8") as f:
         json.dump(frost, f, indent=2)
     emit_ui(state_run, "FROST_VERIFIED", {"head": frost.get("head","unknown")})
+    emit_ui(state_run, "UI_EVENT:FROST_PENDING_TO_VERIFIED")
 
     try:
         if os.path.exists(temp_dir):
@@ -114,15 +116,18 @@ def main():
 
         # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
+        emit_ui(state_run, "UI_EVENT:GLACIER_PENDING")
         glacier_clone(repo, temp_dir)
 
         rc, out = run(["git","-C",temp_dir,"ls-files"])
         picked = glacier_select(out.splitlines(), max_files)
         glacier_emit(state_run, picked, frost.get("head","unknown"))
         emit_ui(state_run, "GLACIER_VERIFIED", {"picked": len(picked)})
+        emit_ui(state_run, "UI_EVENT:GLACIER_VERIFIED")
 
         # Crystal: deterministic bundle
         emit_ui(state_run, "CRYSTAL_PENDING")
+        emit_ui(state_run, "UI_EVENT:CRYSTAL_PENDING")
         bundle = os.path.join(state_run, "artifact")
         ensure_dir(bundle)
 
@@ -164,6 +169,7 @@ def main():
             }, f, indent=2)
 
         emit_ui(state_run, "CRYSTAL_VERIFIED", {"count": len(manifest)})
+        emit_ui(state_run, "UI_EVENT:CRYSTAL_VERIFIED")
 
         # AI handoff (restored)
         ai_handoff_emit(state_run, manifest, repo, frost.get("head","unknown"))
@@ -178,6 +184,7 @@ def main():
         raise RuntimeError("Residue violation")
 
     emit_ui(state_run, "RESIDUE_EMPTY_LOCK")
+    emit_ui(state_run, "UI_EVENT:RESIDUE_EMPTY_LOCK")
     emit_ui(state_run, "RUN_COMPLETE")
     return 0
 
