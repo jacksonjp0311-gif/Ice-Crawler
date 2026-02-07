@@ -16,11 +16,11 @@ observational control surface driven by run fossils written to
 
 ## Animation hooks
 
-Optional animation helpers live in `ui/animations.py`. The UI imports and
+Optional animation helpers live in `ui/animations/`. The UI imports and
 starts them at startup; no engine changes are required.
 
 ## Files
 
 - `ice_ui.py` — UI entrypoint (Tkinter)
-- `animations.py` — UI animation hooks
+- `animations/` — UI animation hooks
 - `assets/` — UI assets (icons/backgrounds)
