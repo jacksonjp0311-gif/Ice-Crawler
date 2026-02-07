@@ -28,11 +28,11 @@ class ExecutionTimeline:
             ordered[-1] = "RESIDUE_EMPTY_LOCK"
 
         for idx, key in enumerate(ordered):
-            if idx < len(self.labels):
-                if key in events and self.labels[idx].cget("text") == "":
-                    if all(self.labels[j].cget("text") for j in range(idx)):
-                        text = self._label_for_key(key)
-                        self.labels[idx].configure(text=text)
+            if idx >= len(self.labels):
+                continue
+            text = self._label_for_key(key) if key in events else ""
+            if self.labels[idx].cget("text") != text:
+                self.labels[idx].configure(text=text)
 
     def _label_for_key(self, key: str) -> str:
         mapping = {
