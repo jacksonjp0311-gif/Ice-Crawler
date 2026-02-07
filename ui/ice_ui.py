@@ -3,7 +3,6 @@
 
 import os
 import queue
-import random
 import subprocess
 import sys
 import threading
@@ -16,7 +15,13 @@ ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if ROOT_DIR not in sys.path:
     sys.path.insert(0, ROOT_DIR)
 
-from ui.animations import start_snowflake_spin
+from ui.animations import (
+    ExecutionTimeline,
+    RitualTriangleButton,
+    StageLadderAnimator,
+    StatusIndicator,
+    attach_snowflake,
+)
 
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
@@ -28,7 +33,6 @@ BLUE = "#00d5ff"
 BLUE2 = "#4fe3ff"
 ORANGE = "#ff9b1a"
 ORANGE2 = "#ff6a00"
-GREEN = "#3cffbc"
 DIM = "#6fb9c9"
 
 STAGE_REVEALS = {
@@ -140,99 +144,6 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
     return p.returncode
 
 
-class GlowTriangleButton(tk.Canvas):
-    def __init__(self, master, command=None, w=104, h=86, **kw):
-        super().__init__(master, width=w, height=h, bg=BG, highlightthickness=0, bd=0, **kw)
-        self.w = w
-        self.h = h
-        self.command = command
-        self.hover = False
-        self.pressed = False
-        self.vibe_phase = 0
-
-        self.bind("<Enter>", self._on_enter)
-        self.bind("<Leave>", self._on_leave)
-        self.bind("<ButtonPress-1>", self._on_down)
-        self.bind("<ButtonRelease-1>", self._on_up)
-        self._draw()
-
-    def set_enabled(self, enabled: bool):
-        self.configure(state="normal" if enabled else "disabled")
-        self._draw()
-
-    def _on_enter(self, _):
-        self.hover = True
-        self._draw()
-
-    def _on_leave(self, _):
-        self.hover = False
-        self.pressed = False
-        self.vibe_phase = 0
-        self._draw()
-
-    def _on_down(self, _):
-        self.pressed = True
-        self._draw()
-
-    def _on_up(self, e):
-        was_pressed = self.pressed
-        self.pressed = False
-        self._draw()
-        if was_pressed and 0 <= e.x <= self.w and 0 <= e.y <= self.h and self.command:
-            self.command()
-
-    def tick(self, enabled: bool):
-        self.vibe_phase = (self.vibe_phase + 1) % 6 if enabled else 0
-        self._draw()
-
-    def _draw(self):
-        self.delete("all")
-
-        if str(self.cget("state")) == "disabled":
-            edge_outer = "#604522"
-            edge_inner = "#25526a"
-            fill = "#0f5e76"
-        else:
-            edge_outer = ORANGE2
-            edge_inner = BLUE
-            fill = "#08b0d8" if (self.hover or self.pressed) else "#0a8fb2"
-
-        jitter = [-1, 0, 1, 0, -1, 1][self.vibe_phase] if str(self.cget("state")) != "disabled" else 0
-        left_x, right_x, top_y, bottom_y = 15 + jitter, self.w - 15 + jitter, 10, self.h - 10
-        mid_x = self.w // 2
-
-        pulse_extra = 1 if self.vibe_phase in (1, 4) else 0
-
-        for i in range(7 + pulse_extra):
-            self.create_polygon(
-                left_x - i, top_y + i,
-                right_x + i, top_y + i,
-                mid_x, bottom_y + i,
-                fill="",
-                outline=edge_outer,
-                width=2,
-            )
-
-        for i in range(5):
-            self.create_polygon(
-                left_x + 8 - i, top_y + 11 + i,
-                right_x - 8 + i, top_y + 11 + i,
-                mid_x, bottom_y - 7 + i,
-                fill="",
-                outline=edge_inner,
-                width=2,
-            )
-
-        self.create_polygon(
-            left_x + 11, top_y + 14,
-            right_x - 11, top_y + 14,
-            mid_x, bottom_y - 10,
-            fill=fill,
-            outline=BLUE2,
-            width=2,
-        )
-
-
 class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -243,14 +154,14 @@ class IceCrawlerUI(tk.Tk):
 
         self._bg_image = None
         self._phase_dots = {}
-        self._stars = []
         self.phase_labels = {}
-
+        self.phase_checks = {}
         self._bg_image = None
         self._status_after = None
-        self._phase_dots = {}
         self.q = queue.Queue()
         self.running = False
+        self.run_complete = False
+        self.has_activity = False
         self.phase_truth = {p: False for p in PHASES}
         self.last_events = ""
         self.run_path = read_latest_run_path()
@@ -259,7 +170,6 @@ class IceCrawlerUI(tk.Tk):
         self._build()
 
         self.after(200, self._animate)
-        self.after(80, self._animate_stars)
         self.after(300, self._pump)
         self._refresh_from_fossils(force=True)
 
@@ -267,7 +177,6 @@ class IceCrawlerUI(tk.Tk):
         self.bg_canvas = tk.Canvas(self, bg=BG, highlightthickness=0, bd=0)
         self.bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
         self._paint_background()
-        self._init_stars()
         self.bind("<Configure>", self._on_resize)
 
         shell = tk.Frame(self, bg=BG)
@@ -276,10 +185,18 @@ class IceCrawlerUI(tk.Tk):
         header = tk.Frame(shell, bg=BG)
         header.pack(fill="x", padx=20, pady=(16, 4))
         title_row = tk.Frame(header, bg=BG)
-        title_row.pack(anchor="w")
+        title_row.pack(fill="x")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
-        self.snowflake_label = tk.Label(title_row, text="❄", fg=ORANGE, bg=BG, font=("Segoe UI", 30, "bold"))
-        self.snowflake_label.pack(side="left", padx=(10, 0))
+        self.snowflake_canvas = attach_snowflake(title_row, self)
+        self.snowflake_canvas.pack(side="left", padx=(8, 0))
+        self.status_indicator_label = tk.Label(
+            title_row,
+            text="STATUS: IDLE",
+            fg=BLUE2,
+            bg=BG,
+            font=("Consolas", 12, "bold"),
+        )
+        self.status_indicator_label.pack(side="right")
         tk.Label(
             header,
             text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
@@ -287,7 +204,7 @@ class IceCrawlerUI(tk.Tk):
             bg=BG,
             font=("Segoe UI", 11, "bold"),
         ).pack(anchor="w")
-        start_snowflake_spin(self.snowflake_label, self)
+        self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
         top.pack(fill="x", padx=20, pady=(8, 10))
@@ -304,7 +221,7 @@ class IceCrawlerUI(tk.Tk):
 
         button_row = tk.Frame(action_panel, bg=BG)
         button_row.pack(anchor="w")
-        self.submit_btn = GlowTriangleButton(button_row, command=self.on_submit, w=104, h=86)
+        self.submit_btn = RitualTriangleButton(button_row, command=self.on_submit, w=104, h=86)
         self.submit_btn.pack(side="left")
 
         self.submit_lbl = tk.Label(
@@ -334,10 +251,13 @@ class IceCrawlerUI(tk.Tk):
             dot.pack(side="left")
             lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 19, "bold"))
             lbl.pack(side="left", padx=(8, 8))
+            check = tk.Label(row, text="", fg=BLUE2, bg=BG, font=("Segoe UI", 16, "bold"))
+            check.pack(side="left", padx=(0, 8))
             reveal = tk.Label(row, text="", fg=ORANGE, bg=BG, font=("Segoe UI", 12, "italic"))
             reveal.pack(side="left")
             self._phase_dots[p] = dot
             self.phase_labels[p] = lbl
+            self.phase_checks[p] = check
             self.phase_reveals[p] = reveal
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
@@ -346,19 +266,28 @@ class IceCrawlerUI(tk.Tk):
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        tk.Label(lower, text="All that remains...", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(anchor="w")
+        output_panel = tk.Frame(lower, bg=BG)
+        output_panel.pack(fill="x", anchor="w")
+        tk.Label(output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
+            anchor="w"
+        )
+        tk.Frame(output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
         self.artifact_link = tk.Label(
-            lower,
-            text="Artifact path will appear after Crystal lock.",
+            output_panel,
+            text="All that remains...",
             fg=BLUE2,
             bg=BG,
             cursor="hand2",
-            font=("Consolas", 12, "underline"),
+            font=("Consolas", 12),
             wraplength=900,
             justify="left",
         )
-        self.artifact_link.pack(anchor="w", pady=(6, 0))
+        self.artifact_link.pack(anchor="w", pady=(2, 8))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+
+        timeline_frame = tk.Frame(lower, bg=BG)
+        timeline_frame.pack(anchor="w", pady=(4, 0))
+        self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
         self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
         self.completion_label = tk.Label(
@@ -366,16 +295,25 @@ class IceCrawlerUI(tk.Tk):
             text="handoff complete",
             fg=ORANGE,
             bg=BG,
-            font=("Segoe UI", 12, "bold"),
+            font=("Segoe UI", 13, "bold"),
         )
         self.completion_label.pack(padx=12, pady=6)
         self.completion_frame.pack(anchor="w", pady=(8, 0))
         self.completion_frame.pack_forget()
         self.completion_visible = False
-        self._completion_pulse = 0
-        self._completion_flicker = 0
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
+
+        self.ladder_animator = StageLadderAnimator(
+            self,
+            PHASES,
+            self._phase_dots,
+            self.phase_labels,
+            self.phase_reveals,
+            self.phase_checks,
+        )
+        self.ladder_animator.reset()
+        self.ladder_animator.tick()
 
 
 
@@ -430,31 +368,6 @@ class IceCrawlerUI(tk.Tk):
             c.create_line(0, y, w, y, fill="#0db7ff", width=2, tags="bg")
             c.create_line(0, y + 2, w, y + 2, fill="#094062", width=2, tags="bg")
 
-    def _init_stars(self):
-        self._stars = []
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        h = max(self.bg_canvas.winfo_height(), 760)
-        for _ in range(90):
-            x = random.randint(0, w)
-            y = random.randint(0, h)
-            size = random.choice([1, 1, 1, 2])
-            color = random.choice(["#a8ecff", "#6fdcff", "#f0ffff"])
-            sid = self.bg_canvas.create_oval(x, y, x + size, y + size, fill=color, outline="", tags="star")
-            self._stars.append({"id": sid, "x": x, "y": y, "size": size, "speed": random.uniform(0.08, 0.35)})
-
-    def _animate_stars(self):
-        if not self._stars:
-            self._init_stars()
-        h = max(self.bg_canvas.winfo_height(), 760)
-        w = max(self.bg_canvas.winfo_width(), 1160)
-        for s in self._stars:
-            s["y"] += s["speed"]
-            if s["y"] > h:
-                s["y"] = 0
-                s["x"] = random.randint(0, w)
-            self.bg_canvas.coords(s["id"], s["x"], s["y"], s["x"] + s["size"], s["y"] + s["size"])
-        self.after(80, self._animate_stars)
-
     def _on_url_focus_in(self, _):
         if self._placeholder_active:
             self.url_entry.delete(0, "end")
@@ -469,10 +382,15 @@ class IceCrawlerUI(tk.Tk):
             self._placeholder_active = True
 
     def _animate(self):
-        glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
-        for p in PHASES:
-            if not self.phase_truth[p]:
-                self._phase_dots[p].configure(text=glow)
+        if self.running or self.has_activity:
+            glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
+            for p in PHASES:
+                if not self.phase_truth[p]:
+                    self._phase_dots[p].configure(text=glow)
+        else:
+            for p in PHASES:
+                if not self.phase_truth[p]:
+                    self._phase_dots[p].configure(text="○")
 
         if self.running:
             current = self.submit_lbl.cget("fg")
@@ -480,23 +398,15 @@ class IceCrawlerUI(tk.Tk):
         else:
             self.submit_lbl.configure(fg=ORANGE)
 
+        self.status_indicator.tick(self.running)
+        self.submit_btn.set_run_state(self.running, self.run_complete)
         self.submit_btn.tick(str(self.submit_btn.cget("state")) != "disabled")
-        if getattr(self, "completion_visible", False):
-            self._completion_pulse = (self._completion_pulse + 1) % 6
-            offset = 1 if self._completion_pulse in (1, 4) else 0
-            self.completion_frame.pack_configure(padx=20 + offset)
-            self._completion_flicker = (self._completion_flicker + 1) % 4
-            flicker_color = ORANGE2 if self._completion_flicker in (1, 2) else ORANGE
-            self.completion_label.configure(fg=flicker_color)
-            self.completion_frame.configure(highlightbackground=flicker_color)
         self.after(220, self._animate)
 
     def _lock(self, phase):
         if self.phase_truth.get(phase):
             return
         self.phase_truth[phase] = True
-        self._phase_dots[phase].configure(text="●", fg=GREEN)
-        self.phase_labels[phase].configure(fg=GREEN)
         self._queue_reveal(phase)
 
     def _set_progress_from_events(self, events: str):
@@ -534,6 +444,7 @@ class IceCrawlerUI(tk.Tk):
     def _refresh_from_fossils(self, force=False):
         if not self.run_path:
             self.status_line.configure(text="Run: waiting")
+            self.status_indicator.set_status("IDLE", BLUE2)
             return
 
         events = read_events(self.run_path)
@@ -541,6 +452,7 @@ class IceCrawlerUI(tk.Tk):
             return
 
         self.last_events = events
+        self.has_activity = bool(events.strip())
 
         if "FROST_VERIFIED" in events:
             self._lock("Frost")
@@ -552,16 +464,25 @@ class IceCrawlerUI(tk.Tk):
             self._lock("Residue")
 
         self._set_progress_from_events(events)
+        self.ladder_animator.update_from_events(events)
+        self.status_indicator.update(events, self.running)
+        self.timeline.update(events)
+        self.run_complete = "RUN_COMPLETE" in events
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
-        if ai_path:
-            self.artifact_link.configure(text=ai_path)
+        if "CRYSTAL_VERIFIED" in events and ai_path:
+            if "RUN_COMPLETE" in events:
+                self.artifact_link.configure(text=f"All that remains...\n{ai_path}")
+            else:
+                self.artifact_link.configure(text=ai_path)
         else:
-            self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
+            self.artifact_link.configure(text="All that remains...")
 
         if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.completion_visible:
+                self.completion_label.configure(fg=ORANGE)
+                self.completion_frame.configure(highlightbackground=ORANGE)
                 self.completion_frame.pack(anchor="w", pady=(8, 0))
                 self.completion_visible = True
         else:
@@ -576,13 +497,19 @@ class IceCrawlerUI(tk.Tk):
             self._phase_dots[p].configure(text="○", fg=BLUE2)
             if hasattr(self, "phase_reveals") and p in self.phase_reveals:
                 self.phase_reveals[p].configure(text="", fg=BLUE2)
+            if hasattr(self, "phase_checks") and p in self.phase_checks:
+                self.phase_checks[p].configure(text="", fg=BLUE2)
             if hasattr(self, "reveal_started"):
                 self.reveal_started[p] = False
         if hasattr(self, "completion_frame"):
             self.completion_frame.pack_forget()
             self.completion_visible = False
         self._draw_progress(8)
-        self.artifact_link.configure(text="Artifact path will appear after Crystal lock.")
+        self.artifact_link.configure(text="All that remains...")
+        self.timeline.reset()
+        self.run_complete = False
+        self.has_activity = False
+        self.ladder_animator.reset()
 
     def open_artifact_folder(self):
         if not self.run_path:
