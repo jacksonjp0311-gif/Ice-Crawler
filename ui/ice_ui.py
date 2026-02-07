@@ -161,6 +161,7 @@ class IceCrawlerUI(tk.Tk):
         self.q = queue.Queue()
         self.running = False
         self.run_complete = False
+        self.has_activity = False
         self.phase_truth = {p: False for p in PHASES}
         self.last_events = ""
         self.run_path = read_latest_run_path()
@@ -383,10 +384,15 @@ class IceCrawlerUI(tk.Tk):
             self._placeholder_active = True
 
     def _animate(self):
-        glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
-        for p in PHASES:
-            if not self.phase_truth[p]:
-                self._phase_dots[p].configure(text=glow)
+        if self.running or self.has_activity:
+            glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
+            for p in PHASES:
+                if not self.phase_truth[p]:
+                    self._phase_dots[p].configure(text=glow)
+        else:
+            for p in PHASES:
+                if not self.phase_truth[p]:
+                    self._phase_dots[p].configure(text="○")
 
         if self.running:
             current = self.submit_lbl.cget("fg")
@@ -399,8 +405,6 @@ class IceCrawlerUI(tk.Tk):
         self.submit_btn.tick(str(self.submit_btn.cget("state")) != "disabled")
         if getattr(self, "completion_visible", False):
             self._completion_pulse = (self._completion_pulse + 1) % 6
-            offset = 1 if self._completion_pulse in (1, 4) else 0
-            self.completion_frame.pack_configure(padx=20 + offset)
             self._completion_flicker = (self._completion_flicker + 1) % 4
             flicker_color = ORANGE2 if self._completion_flicker in (1, 2) else ORANGE
             self.completion_label.configure(fg=flicker_color)
@@ -456,6 +460,7 @@ class IceCrawlerUI(tk.Tk):
             return
 
         self.last_events = events
+        self.has_activity = bool(events.strip())
 
         if "FROST_VERIFIED" in events:
             self._lock("Frost")
@@ -509,6 +514,7 @@ class IceCrawlerUI(tk.Tk):
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
         self.run_complete = False
+        self.has_activity = False
         self.ladder_animator.reset()
 
     def open_artifact_folder(self):
