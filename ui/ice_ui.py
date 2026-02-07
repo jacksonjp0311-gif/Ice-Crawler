@@ -302,7 +302,6 @@ class IceCrawlerUI(tk.Tk):
         self.completion_frame.pack(anchor="w", pady=(8, 0))
         self.completion_frame.pack_forget()
         self.completion_visible = False
-        self._completion_pulse = 0.0
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -404,11 +403,8 @@ class IceCrawlerUI(tk.Tk):
         self.submit_btn.set_run_state(self.running, self.run_complete)
         self.submit_btn.tick(str(self.submit_btn.cget("state")) != "disabled")
         if getattr(self, "completion_visible", False):
-            self._completion_pulse += 0.12
-            pulse = (math.sin(self._completion_pulse) + 1) / 2
-            flicker_color = ORANGE2 if pulse > 0.6 else ORANGE
-            self.completion_label.configure(fg=flicker_color)
-            self.completion_frame.configure(highlightbackground=flicker_color)
+            self.completion_label.configure(fg=ORANGE)
+            self.completion_frame.configure(highlightbackground=ORANGE)
         self.after(220, self._animate)
 
     def _lock(self, phase):
