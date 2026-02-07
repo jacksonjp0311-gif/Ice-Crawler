@@ -402,9 +402,6 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator.tick(self.running)
         self.submit_btn.set_run_state(self.running, self.run_complete)
         self.submit_btn.tick(str(self.submit_btn.cget("state")) != "disabled")
-        if getattr(self, "completion_visible", False):
-            self.completion_label.configure(fg=ORANGE)
-            self.completion_frame.configure(highlightbackground=ORANGE)
         self.after(220, self._animate)
 
     def _lock(self, phase):
@@ -485,6 +482,8 @@ class IceCrawlerUI(tk.Tk):
 
         if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.completion_visible:
+                self.completion_label.configure(fg=ORANGE)
+                self.completion_frame.configure(highlightbackground=ORANGE)
                 self.completion_frame.pack(anchor="w", pady=(8, 0))
                 self.completion_visible = True
         else:
