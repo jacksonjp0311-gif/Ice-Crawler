@@ -113,6 +113,24 @@ def _write_outputs(state_run: str, max_kb: float, tasks: List[AgentTask], oversi
         handle.write("- Invariants or shared dependencies.\n")
         handle.write("- Suggested merge/synthesis notes.\n")
 
+    with open(os.path.join(out_dir, "agentic_report.md"), "w", encoding="utf-8") as handle:
+        handle.write("# ICE-CRAWLER Φ-Agentic Report\n\n")
+        handle.write(f"Timestamp: {utc_now()}\n\n")
+        handle.write("## Summary\n")
+        handle.write(f"- Partition count: {summary['partition_count']}\n")
+        handle.write(f"- Total files: {summary['total_files']}\n")
+        handle.write(f"- Oversize files: {summary['oversize_files']}\n")
+        handle.write(f"- Fragmentation pressure: {summary['fragmentation_pressure']}\n")
+        handle.write(f"- Coordination coherence: {summary['coordination_coherence']}\n\n")
+        if oversize:
+            handle.write("## Oversize files\n")
+            for item in oversize:
+                handle.write(f"- {item['path']} ({item['size_kb']} KB)\n")
+            handle.write("\n")
+        handle.write("## Synthesis notes\n")
+        handle.write("- Merge agent summaries by depth (lower depth = higher coherence weight).\n")
+        handle.write("- Preserve deterministic ordering from `agent_tasks.json` when combining notes.\n")
+
 
 def run_pipeline(state_run: str, max_kb: float) -> Dict:
     manifest = _load_manifest(state_run)

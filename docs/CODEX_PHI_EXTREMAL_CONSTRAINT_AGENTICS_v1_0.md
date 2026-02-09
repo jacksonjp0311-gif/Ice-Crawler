@@ -166,6 +166,7 @@ An optional Frost-stage hook partitions **ref metadata** (from `git ls-remote`) 
 - No clone is performed.
 - Ref prefixes are summarized into `glacier_hints.json`.
 - The output can guide Glacier focus without mutating Glacier selection logic.
+- Markdown reports are emitted to preserve human-readable synthesis notes.
 
 ## Operational path
 

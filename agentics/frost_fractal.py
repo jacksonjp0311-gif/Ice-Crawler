@@ -76,6 +76,19 @@ def _write_outputs(state_run: str, max_weight: float, tasks: List[Dict], oversiz
     with open(os.path.join(out_dir, "glacier_hints.json"), "w", encoding="utf-8") as handle:
         json.dump({"prefix_counts": _prefix_counts(refs)}, handle, indent=2)
 
+    with open(os.path.join(out_dir, "frost_report.md"), "w", encoding="utf-8") as handle:
+        handle.write("# ICE-CRAWLER Φ-Frost Report\n\n")
+        handle.write(f"Timestamp: {utc_now()}\n\n")
+        handle.write("## Summary\n")
+        handle.write(f"- Ref count: {len(refs)}\n")
+        handle.write(f"- Task count: {len(tasks)}\n")
+        handle.write(f"- Oversize refs: {len(oversize)}\n\n")
+        handle.write("## Top ref prefixes\n")
+        for prefix, count in _prefix_counts(refs).items():
+            handle.write(f"- {prefix}: {count}\n")
+        handle.write("\n## Glacier hints\n")
+        handle.write("- Use prefix density to bias Glacier selection toward active branches/tags.\n")
+
 
 def run_frost_fractal(repo_url: str, state_run: str, max_weight: float = 80.0, max_refs: int = 2000) -> Dict:
     rc, out = _run(["git", "ls-remote", "--heads", "--tags", repo_url])
