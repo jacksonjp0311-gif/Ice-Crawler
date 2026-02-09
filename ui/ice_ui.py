@@ -129,6 +129,7 @@ def run_orchestrator(repo_url: str, out_run_dir: str, log_queue: queue.Queue):
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
     p = subprocess.Popen(
         cmd,
         cwd=repo_root(),
@@ -194,7 +195,7 @@ class IceCrawlerUI(tk.Tk):
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=20, pady=(16, 4))
+        header.pack(fill="x", padx=20, pady=(10, 2))
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(fill="x")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
@@ -218,7 +219,7 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(6, 4))
+        top.pack(fill="x", padx=20, pady=(0, 2))
 
         self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
         self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
@@ -251,7 +252,7 @@ class IceCrawlerUI(tk.Tk):
         self._submit_line_2.pack(anchor="w", pady=(3, 0))
 
         self.run_console_panel = tk.Frame(action_panel, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.run_console_panel.pack(anchor="w", pady=(8, 0))
+        self.run_console_panel.pack(anchor="w", pady=(4, 0))
         self.run_console_panel.configure(width=240, height=180)
         self.run_console_panel.pack_propagate(False)
         tk.Label(self.run_console_panel, text="RUN CONSOLE", fg=BLUE2, bg=BG, font=("Segoe UI", 10, "bold")).pack(
@@ -275,16 +276,10 @@ class IceCrawlerUI(tk.Tk):
         self.run_console_text.configure(yscrollcommand=self.run_console_scroll.set)
 
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=20, pady=(0, 4))
+        phase_block.pack(fill="x", padx=20, pady=(0, 0))
 
         ladder_column = tk.Frame(phase_block, bg=BG)
         ladder_column.pack(side="left", anchor="n")
-
-        status_column = tk.Frame(phase_block, bg=BG)
-        status_column.pack(side="left", anchor="n", padx=(24, 0))
-
-        ladder_column = tk.Frame(phase_block, bg=BG)
-        ladder_column.pack(side="left", anchor="n", pady=(28, 0))
 
         status_column = tk.Frame(phase_block, bg=BG)
         status_column.pack(side="left", anchor="n", padx=(24, 0))
@@ -601,9 +596,8 @@ class IceCrawlerUI(tk.Tk):
         self._set_progress_from_events(events)
         self.status_indicator.update(events, self.running)
         self.run_complete = "RUN_COMPLETE" in events
-        if self.run_complete:
-            self.ladder_animator.update_from_events(events)
-            self.timeline.update(events)
+        self.ladder_animator.update_from_events(events)
+        self.timeline.update(events)
         self._update_thread_box(events)
         self._update_cmd_box()
 
@@ -840,6 +834,8 @@ class IceCrawlerUI(tk.Tk):
                 if tag == "LOG":
                     self._append_run_console(payload)
                     continue
+                if tag == "DONE" and rc == 0:
+                    self._append_run_console("\n[ run complete ]\n")
                 self.running = False
                 if tag == "ERR":
                     messagebox.showerror("ICE-CRAWLER", f"Run error:\n\n{payload}")
