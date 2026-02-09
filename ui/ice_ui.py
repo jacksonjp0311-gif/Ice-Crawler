@@ -332,7 +332,7 @@ class IceCrawlerUI(tk.Tk):
         self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
 
         action_panel = tk.Frame(top_left, bg=BG)
-        action_panel.pack(side="left", padx=(ACTION_GAP, 0))
+        action_panel.pack(side="left", padx=(ACTION_GAP, 0), pady=(6, 0))
 
         button_row = tk.Frame(action_panel, bg=BG)
         button_row.pack(anchor="w")
@@ -708,7 +708,10 @@ class IceCrawlerUI(tk.Tk):
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
-        self.artifact_link.configure(text=_artifact_summary(self.run_path, ai_path))
+        artifact_summary = _artifact_summary(self.run_path, ai_path)
+        self.artifact_link.configure(text=artifact_summary)
+        if self.run_complete:
+            self._append_run_console_artifacts(artifact_summary)
 
         if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.handoff_visible:
@@ -852,12 +855,25 @@ class IceCrawlerUI(tk.Tk):
         self.run_console_text.see("end")
         self.run_console_text.configure(state="disabled")
 
+    def _append_run_console_artifacts(self, summary: str):
+        if not hasattr(self, "run_console_text"):
+            return
+        if getattr(self, "_artifact_console_cache", None) == summary:
+            return
+        self._artifact_console_cache = summary
+        header = "\n[ artifacts ]\n"
+        self.run_console_text.configure(state="normal")
+        self.run_console_text.insert("end", header + summary + "\n")
+        self.run_console_text.see("end")
+        self.run_console_text.configure(state="disabled")
+
     def _reset_run_console(self):
         if not hasattr(self, "run_console_text"):
             return
         self.run_console_text.configure(state="normal")
         self.run_console_text.delete("1.0", "end")
         self.run_console_text.configure(state="disabled")
+        self._artifact_console_cache = None
 
     def open_artifact_folder(self):
         if not self.run_path:
