@@ -107,6 +107,7 @@ def main():
 
     emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
     agentic = agentics_hook()
+    agentic_ran = False
 
     # Frost: telemetry-only
     emit_ui(state_run, "FROST_PENDING")
@@ -120,12 +121,18 @@ def main():
         if os.path.exists(temp_dir):
             purge_dir_strict(temp_dir)
 
-        if agentic is not None:
+        if agentic is not None and agentic.frost_enabled():
             try:
-                agentic.run_frost_hook(state_run, repo)
+                agentic.mark_agents_running(state_run, "frost")
+                frost_result = agentic.run_frost_hook(state_run, repo)
+                if frost_result is not None:
+                    agentic_ran = True
                 emit_ui(state_run, "AGENTIC_FROST_VERIFIED")
             except Exception as exc:
+                agentic.mark_agents_fail(state_run, str(exc))
                 emit_ui(state_run, "AGENTIC_FROST_ERROR", {"error": str(exc)})
+        elif agentic is not None and agentic_ran and (not agentic.crystal_enabled()):
+            agentic.mark_agents_ok(state_run, {"stage": "frost"})
 
         # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
@@ -187,12 +194,21 @@ def main():
         # AI handoff (restored)
         ai_handoff_emit(state_run, manifest, repo, frost.get("head","unknown"))
 
-        if agentic is not None:
+        if agentic is not None and agentic.crystal_enabled():
             try:
-                agentic.run_crystal_hook(state_run)
+                agentic.mark_agents_running(state_run, "crystal")
+                crystal_result = agentic.run_crystal_hook(state_run)
+                if crystal_result is not None:
+                    agentic_ran = True
                 emit_ui(state_run, "AGENTIC_CRYSTAL_VERIFIED")
             except Exception as exc:
+                agentic.mark_agents_fail(state_run, str(exc))
                 emit_ui(state_run, "AGENTIC_CRYSTAL_ERROR", {"error": str(exc)})
+            else:
+                if agentic_ran:
+                    agentic.mark_agents_ok(state_run, {"stage": "crystal"})
+        elif agentic is not None and agentic_ran:
+            agentic.mark_agents_ok(state_run, {"stage": "frost"})
 
     finally:
         purge_ok = purge_dir_strict(temp_dir)

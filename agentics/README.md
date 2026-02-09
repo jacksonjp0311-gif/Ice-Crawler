@@ -27,6 +27,9 @@ python -m agentics.pipeline state/runs/<run_id> --max-kb 160
 - `agentic/agent_index.json` — summary, φ constants, and oversize list.
 - `agentic/agent_prompt.md` — prompt template for agents.
 - `agentic/agentic_report.md` — run summary and synthesis notes.
+- `agentic/AGENTS_ACTIVE.json` — marker while agentics are running.
+- `agentic/AGENTS_OK.json` — marker when agentics complete successfully.
+- `agentic/AGENTS_FAIL.json` — marker when agentics fail.
 - `frost_agentic/frost_agent_tasks.json` — ref-based task list (Frost telemetry).
 - `frost_agentic/frost_agent_index.json` — ref summary and oversize refs list.
 - `frost_agentic/glacier_hints.json` — ref prefix counts to guide Glacier focus.

@@ -185,6 +185,7 @@ When the `agentics` package is present, the orchestrator runs hooks automaticall
 
 - **Before Glacier**: Frost-stage ref partitions into `<run_id>/frost_agentic/`.
 - **Before residue**: Crystal-stage artifact partitions into `<run_id>/agentic/`.
+- **Status markers**: `agentic/AGENTS_ACTIVE.json`, `agentic/AGENTS_OK.json`, `agentic/AGENTS_FAIL.json` record agentic outcomes.
 
 Disable behavior with environment flags:
 
