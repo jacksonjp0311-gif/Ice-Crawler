@@ -7,6 +7,7 @@ The UI reads only fossil artifacts emitted by the engine layer:
 - `ui_events.jsonl`
 - `ai_handoff_path.txt`
 - `ui_stdout.txt` / `ui_rc.txt` (debug)
+- `ui/inbox/submit_request.json` (submit intent)
 
 All visual state is derived from those events and files.
 
@@ -29,7 +30,7 @@ The blue **AGENTS** status row appears only when agentic hooks
 write success artifacts (`agentic/AGENTS_OK.json`) or failure artifacts (`agentic/AGENTS_FAIL.json`).
 Both banners are rendered alongside the ladder to avoid layout shifts in the output panel.
 
-The output residue panel mirrors the agentic status once per transition:
+The output residue panel mirrors the agentic status once per transition and lists the typical run artifacts when present:
 
 - `[ Agents OK — agentic/AGENTS_OK.json ]`
 - `[ Agents FAILED — agentic/AGENTS_FAIL.json ]`
@@ -45,6 +46,10 @@ A blue "CMD TRACE" panel appears above the run thread. It tails `run_cmds.jsonl`
 ## Run console
 
 The "RUN CONSOLE" panel sits under the submit button and streams live stdout/stderr from the orchestrator in a scrollable, fixed-height box. No external terminals are spawned.
+
+## Execution bridge
+
+UI submit writes `ui/inbox/submit_request.json` and invokes `ui/execute_orchestrator.py`, which runs `engine/orchestrator.py` once per request. This keeps the UI as an observer while the orchestrator emits the fossils the ladder reads.
 
 ## Headless execution
 
