@@ -159,6 +159,14 @@ The Φ-extremal model is implemented as a **separate, opt-in postprocessor** tha
 
 This keeps Ice-Crawler’s deterministic guarantees intact while enabling multi-agent recursion when scale demands it.
 
+### Frost-stage fractalization (telemetry-only)
+
+An optional Frost-stage hook partitions **ref metadata** (from `git ls-remote`) into φ-scaled tasks:
+
+- No clone is performed.
+- Ref prefixes are summarized into `glacier_hints.json`.
+- The output can guide Glacier focus without mutating Glacier selection logic.
+
 ## Operational path
 
 1. Run Ice-Crawler as usual to produce a run directory.
@@ -169,6 +177,21 @@ python -m agentics.pipeline state/runs/<run_id>
 ```
 
 3. Inspect the generated outputs in `<run_id>/agentic/`.
+
+## Automatic hooks
+
+When the `agentics` package is present, the orchestrator runs hooks automatically:
+
+- **Before Glacier**: Frost-stage ref partitions into `<run_id>/frost_agentic/`.
+- **Before residue**: Crystal-stage artifact partitions into `<run_id>/agentic/`.
+
+Disable behavior with environment flags:
+
+- `ICE_CRAWLER_AGENTIC_DISABLE=1` — disable all agentic hooks.
+- `ICE_CRAWLER_FROST_AGENTIC_DISABLE=1` — disable only Frost ref partitioning.
+- `ICE_CRAWLER_CRYSTAL_AGENTIC_DISABLE=1` — disable only Crystal partitioning.
+- `ICE_CRAWLER_FROST_AGENTIC_MAX_WEIGHT=<float>` — override Frost partition weight bound.
+- `ICE_CRAWLER_AGENTIC_MAX_KB=<float>` — override Crystal partition size bound.
 
 ## Minimal references
 

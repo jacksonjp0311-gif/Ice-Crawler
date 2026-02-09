@@ -51,12 +51,13 @@ def phi_partition(
     items: Iterable[dict],
     size_key: str,
     max_size: float,
+    sort_key: str = "path",
 ) -> Tuple[List[Partition], List[dict]]:
     """Partition items using a golden-ratio split until partitions fit max_size.
 
     Returns (partitions, oversize_items).
     """
-    normalized = sorted(items, key=lambda x: x["path"])
+    normalized = sorted(items, key=lambda x: x.get(sort_key, ""))
     oversize = [item for item in normalized if item[size_key] > max_size]
     bounded = [item for item in normalized if item[size_key] <= max_size]
 
