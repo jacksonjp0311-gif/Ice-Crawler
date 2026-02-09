@@ -1,4 +1,4 @@
-import os, sys, json, shutil, subprocess, datetime, time, stat
+import os, sys, json, shutil, subprocess, datetime, time, stat, importlib.util, importlib
 
 from .frost import frost_telemetry
 from .glacier import glacier_clone, glacier_select, glacier_emit
@@ -45,6 +45,19 @@ def emit_ui(state_run: str, event: str, payload=None):
         rec["payload"]=payload
     with open(p,"a",encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False)+"\n")
+
+def emit_cmd(state_run: str, cmd, note=None):
+    p = os.path.join(state_run, "run_cmds.jsonl")
+    rec = {"ts": utc_now(), "cmd": cmd}
+    if note:
+        rec["note"] = note
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+def agentics_hook():
+    if importlib.util.find_spec("agentics.hook") is None:
+        return None
+    return importlib.import_module("agentics.hook")
 
 def ai_handoff_emit(state_run: str, manifest, repo_url: str, repo_head: str):
     ai_dir = os.path.join(state_run, "ai_handoff")
@@ -101,9 +114,12 @@ def main():
     residue_path = os.path.join(state_run,"residue_truth.json")
 
     emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
+    agentic = agentics_hook()
+    agentic_ran = False
 
     # Frost: telemetry-only
     emit_ui(state_run, "FROST_PENDING")
+    emit_cmd(state_run, ["git", "ls-remote", repo, "HEAD"], note="frost_telemetry")
     frost = frost_telemetry(repo)
     with open(os.path.join(state_run,"frost_summary.json"),"w",encoding="utf-8") as f:
         json.dump(frost, f, indent=2)
@@ -114,11 +130,26 @@ def main():
         if os.path.exists(temp_dir):
             purge_dir_strict(temp_dir)
 
+        if agentic is not None and agentic.frost_enabled():
+            try:
+                agentic.mark_agents_running(state_run, "frost")
+                frost_result = agentic.run_frost_hook(state_run, repo)
+                if frost_result is not None:
+                    agentic_ran = True
+                emit_ui(state_run, "AGENTIC_FROST_VERIFIED")
+            except Exception as exc:
+                agentic.mark_agents_fail(state_run, str(exc))
+                emit_ui(state_run, "AGENTIC_FROST_ERROR", {"error": str(exc)})
+        elif agentic is not None and agentic_ran and (not agentic.crystal_enabled()):
+            agentic.mark_agents_ok(state_run, {"stage": "frost"})
+
         # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
         emit_ui(state_run, "UI_EVENT:GLACIER_PENDING")
+        emit_cmd(state_run, ["git", "clone", "--depth=1", "--single-branch", repo, temp_dir], note="glacier_clone")
         glacier_clone(repo, temp_dir)
 
+        emit_cmd(state_run, ["git", "-C", temp_dir, "ls-files"], note="glacier_ls_files")
         rc, out = run(["git","-C",temp_dir,"ls-files"])
         picked = glacier_select(out.splitlines(), max_files)
         glacier_emit(state_run, picked, frost.get("head","unknown"))
@@ -173,6 +204,22 @@ def main():
 
         # AI handoff (restored)
         ai_handoff_emit(state_run, manifest, repo, frost.get("head","unknown"))
+
+        if agentic is not None and agentic.crystal_enabled():
+            try:
+                agentic.mark_agents_running(state_run, "crystal")
+                crystal_result = agentic.run_crystal_hook(state_run)
+                if crystal_result is not None:
+                    agentic_ran = True
+                emit_ui(state_run, "AGENTIC_CRYSTAL_VERIFIED")
+            except Exception as exc:
+                agentic.mark_agents_fail(state_run, str(exc))
+                emit_ui(state_run, "AGENTIC_CRYSTAL_ERROR", {"error": str(exc)})
+            else:
+                if agentic_ran:
+                    agentic.mark_agents_ok(state_run, {"stage": "crystal"})
+        elif agentic is not None and agentic_ran:
+            agentic.mark_agents_ok(state_run, {"stage": "frost"})
 
     finally:
         purge_ok = purge_dir_strict(temp_dir)
