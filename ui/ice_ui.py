@@ -41,8 +41,8 @@ ORANGE2 = "#ff6a00"
 DIM = "#6fb9c9"
 
 GUTTER_X = 16
-ACTION_GAP = 10
-COLUMN_GAP = 16
+ACTION_GAP = 8
+COLUMN_GAP = 12
 URL_ENTRY_WIDTH = 68
 
 STAGE_REVEALS = {
@@ -664,15 +664,14 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = events
         self.has_activity = bool(events.strip())
 
-        if "RUN_COMPLETE" in events:
-            if "FROST_VERIFIED" in events:
-                self._lock("Frost")
-            if "GLACIER_VERIFIED" in events:
-                self._lock("Glacier")
-            if "CRYSTAL_VERIFIED" in events:
-                self._lock("Crystal")
-            if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
-                self._lock("Residue")
+        if "FROST_VERIFIED" in events:
+            self._lock("Frost")
+        if "GLACIER_VERIFIED" in events:
+            self._lock("Glacier")
+        if "CRYSTAL_VERIFIED" in events:
+            self._lock("Crystal")
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+            self._lock("Residue")
 
         self._set_progress_from_events(events)
         self.status_indicator.update(events, self.running)
