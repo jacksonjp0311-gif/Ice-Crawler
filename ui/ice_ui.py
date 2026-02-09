@@ -243,10 +243,16 @@ class IceCrawlerUI(tk.Tk):
         phase_block = tk.Frame(shell, bg=BG)
         phase_block.pack(fill="x", padx=20, pady=(4, 6))
 
+        ladder_column = tk.Frame(phase_block, bg=BG)
+        ladder_column.pack(side="left", anchor="n")
+
+        status_column = tk.Frame(phase_block, bg=BG)
+        status_column.pack(side="left", anchor="n", padx=(24, 0))
+
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
         for p in PHASES:
-            row = tk.Frame(phase_block, bg=BG)
+            row = tk.Frame(ladder_column, bg=BG)
             row.pack(anchor="w", pady=2)
             dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 24, "bold"))
             dot.pack(side="left")
@@ -260,6 +266,32 @@ class IceCrawlerUI(tk.Tk):
             self.phase_labels[p] = lbl
             self.phase_checks[p] = check
             self.phase_reveals[p] = reveal
+
+        self.agent_frame = tk.Frame(status_column, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
+        self.agent_label = tk.Label(
+            self.agent_frame,
+            text="AGENTS DEPLOYED",
+            fg=BLUE2,
+            bg=BG,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.agent_label.pack(padx=12, pady=6)
+        self.agent_frame.pack(anchor="w", pady=(2, 8))
+        self.agent_frame.pack_forget()
+        self.agent_visible = False
+
+        self.completion_frame = tk.Frame(status_column, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
+        self.completion_label = tk.Label(
+            self.completion_frame,
+            text="handoff complete",
+            fg=ORANGE,
+            bg=BG,
+            font=("Segoe UI", 13, "bold"),
+        )
+        self.completion_label.pack(padx=12, pady=6)
+        self.completion_frame.pack(anchor="w", pady=(0, 8))
+        self.completion_frame.pack_forget()
+        self.completion_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
@@ -290,18 +322,6 @@ class IceCrawlerUI(tk.Tk):
         timeline_frame.pack(anchor="w", pady=(4, 0))
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
-        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
-        self.completion_label = tk.Label(
-            self.completion_frame,
-            text="handoff complete",
-            fg=ORANGE,
-            bg=BG,
-            font=("Segoe UI", 13, "bold"),
-        )
-        self.completion_label.pack(padx=12, pady=6)
-        self.completion_frame.pack(anchor="w", pady=(8, 0))
-        self.completion_frame.pack_forget()
-        self.completion_visible = False
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -494,6 +514,14 @@ class IceCrawlerUI(tk.Tk):
                 self.completion_frame.pack_forget()
                 self.completion_visible = False
 
+        agentic_success = ("AGENTIC_FROST_VERIFIED" in events) or ("AGENTIC_CRYSTAL_VERIFIED" in events)
+        if agentic_success and (not self.agent_visible):
+            self.agent_frame.pack(anchor="w", pady=(6, 0))
+            self.agent_visible = True
+        elif (not agentic_success) and self.agent_visible:
+            self.agent_frame.pack_forget()
+            self.agent_visible = False
+
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
@@ -508,6 +536,9 @@ class IceCrawlerUI(tk.Tk):
         if hasattr(self, "completion_frame"):
             self.completion_frame.pack_forget()
             self.completion_visible = False
+        if hasattr(self, "agent_frame"):
+            self.agent_frame.pack_forget()
+            self.agent_visible = False
         self._draw_progress(8)
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
