@@ -37,6 +37,11 @@ ORANGE = "#ff9b1a"
 ORANGE2 = "#ff6a00"
 DIM = "#6fb9c9"
 
+GUTTER_X = 16
+ACTION_GAP = 10
+COLUMN_GAP = 16
+URL_ENTRY_WIDTH = 68
+
 STAGE_REVEALS = {
     "Frost": "signal detected",
     "Glacier": "structure stabilizing",
@@ -195,7 +200,7 @@ class IceCrawlerUI(tk.Tk):
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=20, pady=(6, 2))
+        header.pack(fill="x", padx=GUTTER_X, pady=(6, 2))
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(fill="x")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
@@ -219,17 +224,28 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(0, 0))
+        top.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
 
-        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
-        self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
+        top_left = tk.Frame(top, bg=BG)
+        top_left.pack(side="left", anchor="w")
+
+        self.url_entry = tk.Entry(
+            top_left,
+            bg=PANEL,
+            fg=DIM,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 14),
+            width=URL_ENTRY_WIDTH,
+        )
+        self.url_entry.pack(side="left", ipady=7)
         self.url_entry.insert(0, PLACEHOLDER)
         self._placeholder_active = True
         self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
         self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
 
-        action_panel = tk.Frame(top, bg=BG)
-        action_panel.pack(side="left", padx=(14, 0))
+        action_panel = tk.Frame(top_left, bg=BG)
+        action_panel.pack(side="left", padx=(ACTION_GAP, 0))
 
         button_row = tk.Frame(action_panel, bg=BG)
         button_row.pack(anchor="w")
@@ -275,14 +291,17 @@ class IceCrawlerUI(tk.Tk):
         self.run_console_scroll.pack(side="right", fill="y", pady=(0, 8), padx=(4, 6))
         self.run_console_text.configure(yscrollcommand=self.run_console_scroll.set)
 
+        top_spacer = tk.Frame(top, bg=BG)
+        top_spacer.pack(side="left", fill="x", expand=True)
+
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=20, pady=(0, 0))
+        phase_block.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
 
         ladder_column = tk.Frame(phase_block, bg=BG)
         ladder_column.pack(side="left", anchor="n")
 
         status_column = tk.Frame(phase_block, bg=BG)
-        status_column.pack(side="left", anchor="n", padx=(24, 0))
+        status_column.pack(side="left", anchor="n", padx=(COLUMN_GAP, 0))
 
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
@@ -336,11 +355,11 @@ class IceCrawlerUI(tk.Tk):
         self.handoff_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(2, 8))
+        self.progress_canvas.pack(fill="x", padx=GUTTER_X, pady=(2, 8))
         self._draw_progress(0)
 
         lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 0))
+        lower.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
         residue_row = tk.Frame(lower, bg=BG)
         residue_row.pack(fill="x", anchor="w")
         self.output_panel = tk.Frame(residue_row, bg=BG)
@@ -425,7 +444,7 @@ class IceCrawlerUI(tk.Tk):
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(4, 8))
+        self.status_line.pack(side="bottom", anchor="w", padx=GUTTER_X, pady=(4, 8))
 
         self.ladder_animator = StageLadderAnimator(
             self,
