@@ -16,6 +16,13 @@ def _run(cmd: List[str]) -> Tuple[int, str]:
     return proc.returncode, proc.stdout
 
 
+def _write_cmd(state_run: str, cmd: List[str], note: str) -> None:
+    path = os.path.join(state_run, "run_cmds.jsonl")
+    rec = {"ts": utc_now(), "cmd": cmd, "note": note}
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+
 def _parse_refs(output: str) -> List[Dict]:
     refs = []
     for line in output.splitlines():
@@ -91,6 +98,7 @@ def _write_outputs(state_run: str, max_weight: float, tasks: List[Dict], oversiz
 
 
 def run_frost_fractal(repo_url: str, state_run: str, max_weight: float = 80.0, max_refs: int = 2000) -> Dict:
+    _write_cmd(state_run, ["git", "ls-remote", "--heads", "--tags", repo_url], "agentic_frost_refs")
     rc, out = _run(["git", "ls-remote", "--heads", "--tags", repo_url])
     refs = _parse_refs(out) if rc == 0 else []
     refs = refs[:max_refs]

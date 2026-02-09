@@ -46,6 +46,14 @@ def emit_ui(state_run: str, event: str, payload=None):
     with open(p,"a",encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False)+"\n")
 
+def emit_cmd(state_run: str, cmd, note=None):
+    p = os.path.join(state_run, "run_cmds.jsonl")
+    rec = {"ts": utc_now(), "cmd": cmd}
+    if note:
+        rec["note"] = note
+    with open(p, "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
 def agentics_hook():
     if importlib.util.find_spec("agentics.hook") is None:
         return None
@@ -111,6 +119,7 @@ def main():
 
     # Frost: telemetry-only
     emit_ui(state_run, "FROST_PENDING")
+    emit_cmd(state_run, ["git", "ls-remote", repo, "HEAD"], note="frost_telemetry")
     frost = frost_telemetry(repo)
     with open(os.path.join(state_run,"frost_summary.json"),"w",encoding="utf-8") as f:
         json.dump(frost, f, indent=2)
@@ -137,8 +146,10 @@ def main():
         # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
         emit_ui(state_run, "UI_EVENT:GLACIER_PENDING")
+        emit_cmd(state_run, ["git", "clone", "--depth=1", "--single-branch", repo, temp_dir], note="glacier_clone")
         glacier_clone(repo, temp_dir)
 
+        emit_cmd(state_run, ["git", "-C", temp_dir, "ls-files"], note="glacier_ls_files")
         rc, out = run(["git","-C",temp_dir,"ls-files"])
         picked = glacier_select(out.splitlines(), max_files)
         glacier_emit(state_run, picked, frost.get("head","unknown"))

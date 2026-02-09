@@ -18,6 +18,7 @@ if ROOT_DIR not in sys.path:
 
 from ui.animations import (
     ExecutionTimeline,
+    HandoffCompleteBadge,
     RitualTriangleButton,
     StageLadderAnimator,
     StatusIndicator,
@@ -244,7 +245,7 @@ class IceCrawlerUI(tk.Tk):
         phase_block.pack(fill="x", padx=20, pady=(4, 6))
 
         ladder_column = tk.Frame(phase_block, bg=BG)
-        ladder_column.pack(side="left", anchor="n")
+        ladder_column.pack(side="left", anchor="n", pady=(28, 0))
 
         status_column = tk.Frame(phase_block, bg=BG)
         status_column.pack(side="left", anchor="n", padx=(24, 0))
@@ -295,18 +296,10 @@ class IceCrawlerUI(tk.Tk):
         self.agent_visible = False
         self.agent_state = None
 
-        self.completion_frame = tk.Frame(status_column, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
-        self.completion_label = tk.Label(
-            self.completion_frame,
-            text="handoff complete",
-            fg=ORANGE,
-            bg=BG,
-            font=("Segoe UI", 13, "bold"),
-        )
-        self.completion_label.pack(padx=12, pady=6)
-        self.completion_frame.pack(anchor="w", pady=(0, 8))
-        self.completion_frame.pack_forget()
-        self.completion_visible = False
+        self.handoff_badge = HandoffCompleteBadge(status_column, command=self.open_handoff_folder)
+        self.handoff_badge.pack(anchor="w", pady=(0, 8))
+        self.handoff_badge.pack_forget()
+        self.handoff_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
@@ -348,14 +341,40 @@ class IceCrawlerUI(tk.Tk):
         self.agent_residue_label.pack_forget()
         self.agent_residue_state = None
 
-        self.log_panel = tk.Frame(residue_row, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.log_panel.pack(side="right", anchor="n", padx=(14, 0))
+        self.log_column = tk.Frame(residue_row, bg=BG)
+        self.log_column.pack(side="right", anchor="n", padx=(14, 0))
+
+        self.cmd_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.cmd_panel.pack(anchor="n", pady=(0, 12))
+        self.cmd_panel.configure(width=320, height=150)
+        self.cmd_panel.pack_propagate(False)
+        tk.Label(self.cmd_panel, text="CMD TRACE", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+        self.cmd_text = tk.Text(
+            self.cmd_panel,
+            height=6,
+            width=38,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+        )
+        self.cmd_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
+        self.cmd_text.configure(state="disabled")
+
+        self.log_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.log_panel.pack(anchor="n")
+        self.log_panel.configure(width=320, height=150)
+        self.log_panel.pack_propagate(False)
         tk.Label(self.log_panel, text="RUN THREAD", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
             anchor="w", padx=10, pady=(8, 4)
         )
         self.thread_text = tk.Text(
             self.log_panel,
-            height=10,
+            height=6,
             width=38,
             bg="#061729",
             fg=BLUE2,
@@ -545,6 +564,7 @@ class IceCrawlerUI(tk.Tk):
         self.timeline.update(events)
         self.run_complete = "RUN_COMPLETE" in events
         self._update_thread_box(events)
+        self._update_cmd_box()
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
@@ -557,15 +577,52 @@ class IceCrawlerUI(tk.Tk):
             self.artifact_link.configure(text="All that remains...")
 
         if ("RUN_COMPLETE" in events) and (not self.running):
-            if not self.completion_visible:
-                self.completion_label.configure(fg=ORANGE)
-                self.completion_frame.configure(highlightbackground=ORANGE)
-                self.completion_frame.pack(anchor="w", pady=(8, 0))
-                self.completion_visible = True
+            if not self.handoff_visible:
+                self.handoff_badge.pack(anchor="w", pady=(0, 8))
+                self.handoff_visible = True
         else:
-            if self.completion_visible:
-                self.completion_frame.pack_forget()
-                self.completion_visible = False
+            if self.handoff_visible:
+                self.handoff_badge.pack_forget()
+                self.handoff_visible = False
+
+        agentic_dir = os.path.join(self.run_path, "agentic")
+        marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
+        marker_fail = os.path.join(agentic_dir, "AGENTS_FAIL.json")
+        marker_active = os.path.join(agentic_dir, "AGENTS_ACTIVE.json")
+        agent_state = None
+        if os.path.exists(marker_fail):
+            agent_state = "fail"
+        elif os.path.exists(marker_ok):
+            agent_state = "ok"
+        elif os.path.exists(marker_active):
+            agent_state = "active"
+
+        if agent_state and (not self.agent_visible):
+            self.agent_status_row.pack(anchor="w", pady=(2, 8))
+            self.agent_visible = True
+        elif (not agent_state) and self.agent_visible:
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+
+        if agent_state != self.agent_state:
+            self.agent_state = agent_state
+            if agent_state == "ok":
+                self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "fail":
+                self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
+                self.agent_state_frame.configure(highlightbackground=ORANGE2)
+                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "active":
+                self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.pack_forget()
+            else:
+                self.agent_residue_label.pack_forget()
 
         agentic_dir = os.path.join(self.run_path, "agentic")
         marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
@@ -617,9 +674,9 @@ class IceCrawlerUI(tk.Tk):
                 self.phase_checks[p].configure(text="", fg=BLUE2)
             if hasattr(self, "reveal_started"):
                 self.reveal_started[p] = False
-        if hasattr(self, "completion_frame"):
-            self.completion_frame.pack_forget()
-            self.completion_visible = False
+        if hasattr(self, "handoff_badge"):
+            self.handoff_badge.pack_forget()
+            self.handoff_visible = False
         if hasattr(self, "agent_frame"):
             self.agent_status_row.pack_forget()
             self.agent_visible = False
@@ -633,6 +690,7 @@ class IceCrawlerUI(tk.Tk):
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
         self._reset_thread_box()
+        self._reset_cmd_box()
         self.run_complete = False
         self.has_activity = False
         self.ladder_animator.reset()
@@ -659,6 +717,37 @@ class IceCrawlerUI(tk.Tk):
         self.thread_text.configure(state="disabled")
         self._thread_cache = ""
 
+    def _update_cmd_box(self):
+        if not hasattr(self, "cmd_text"):
+            return
+        cmd_path = os.path.join(self.run_path, "run_cmds.jsonl")
+        if not os.path.exists(cmd_path):
+            if getattr(self, "_cmd_cache", None) != "":
+                self._cmd_cache = ""
+                self.cmd_text.configure(state="normal")
+                self.cmd_text.delete("1.0", "end")
+                self.cmd_text.configure(state="disabled")
+            return
+        content = read_text(cmd_path)
+        lines = [line for line in content.splitlines() if line.strip()]
+        tail = lines[-10:] if len(lines) > 10 else lines
+        display = "\n".join(tail)
+        if getattr(self, "_cmd_cache", None) == display:
+            return
+        self._cmd_cache = display
+        self.cmd_text.configure(state="normal")
+        self.cmd_text.delete("1.0", "end")
+        self.cmd_text.insert("end", display)
+        self.cmd_text.configure(state="disabled")
+
+    def _reset_cmd_box(self):
+        if not hasattr(self, "cmd_text"):
+            return
+        self.cmd_text.configure(state="normal")
+        self.cmd_text.delete("1.0", "end")
+        self.cmd_text.configure(state="disabled")
+        self._cmd_cache = ""
+
     def open_artifact_folder(self):
         if not self.run_path:
             messagebox.showinfo("ICE-CRAWLER", "No run folder yet.")
@@ -673,6 +762,26 @@ class IceCrawlerUI(tk.Tk):
             messagebox.showinfo("ICE-CRAWLER", "No artifact path yet.")
             return
 
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(target)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", target])
+            else:
+                subprocess.Popen(["xdg-open", target])
+        except Exception as e:
+            messagebox.showerror("ICE-CRAWLER", str(e))
+
+    def open_handoff_folder(self):
+        if not self.run_path:
+            messagebox.showinfo("ICE-CRAWLER", "No run folder yet.")
+            return
+        ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
+        if ai_path and os.path.exists(ai_path):
+            target = ai_path
+        else:
+            messagebox.showinfo("ICE-CRAWLER", "No handoff path yet.")
+            return
         try:
             if sys.platform.startswith("win"):
                 os.startfile(target)
