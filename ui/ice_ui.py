@@ -40,7 +40,6 @@ DIM = "#6fb9c9"
 GUTTER_X = 16
 ACTION_GAP = 10
 COLUMN_GAP = 16
-URL_ENTRY_WIDTH = 68
 
 STAGE_REVEALS = {
     "Frost": "signal detected",
@@ -226,25 +225,14 @@ class IceCrawlerUI(tk.Tk):
         top = tk.Frame(shell, bg=BG)
         top.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
 
-        top_left = tk.Frame(top, bg=BG)
-        top_left.pack(side="left", anchor="w")
-
-        self.url_entry = tk.Entry(
-            top_left,
-            bg=PANEL,
-            fg=DIM,
-            insertbackground=BLUE2,
-            relief="flat",
-            font=("Consolas", 14),
-            width=URL_ENTRY_WIDTH,
-        )
-        self.url_entry.pack(side="left", ipady=7)
+        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
+        self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
         self.url_entry.insert(0, PLACEHOLDER)
         self._placeholder_active = True
         self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
         self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
 
-        action_panel = tk.Frame(top_left, bg=BG)
+        action_panel = tk.Frame(top, bg=BG)
         action_panel.pack(side="left", padx=(ACTION_GAP, 0))
 
         button_row = tk.Frame(action_panel, bg=BG)
@@ -290,9 +278,6 @@ class IceCrawlerUI(tk.Tk):
         self.run_console_scroll = tk.Scrollbar(self.run_console_panel, command=self.run_console_text.yview)
         self.run_console_scroll.pack(side="right", fill="y", pady=(0, 8), padx=(4, 6))
         self.run_console_text.configure(yscrollcommand=self.run_console_scroll.set)
-
-        top_spacer = tk.Frame(top, bg=BG)
-        top_spacer.pack(side="left", fill="x", expand=True)
 
         phase_block = tk.Frame(shell, bg=BG)
         phase_block.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
