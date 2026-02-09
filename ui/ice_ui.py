@@ -1,6 +1,7 @@
 # ui/ice_ui.py
 # ❄ ICE-CRAWLER UI — Event-Truth + Photo-Lock Control Surface
 
+import json
 import math
 import os
 import queue
@@ -28,6 +29,8 @@ from ui.animations import (
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
 EVENT_FILE = "ui_events.jsonl"
+SUBMIT_REQUEST = "submit_request.json"
+INBOX_DIR = "inbox"
 
 BG = "#050b14"
 PANEL = "#071427"
@@ -36,6 +39,11 @@ BLUE2 = "#4fe3ff"
 ORANGE = "#ff9b1a"
 ORANGE2 = "#ff6a00"
 DIM = "#6fb9c9"
+
+GUTTER_X = 16
+ACTION_GAP = 8
+COLUMN_GAP = 12
+URL_ENTRY_WIDTH = 68
 
 STAGE_REVEALS = {
     "Frost": "signal detected",
@@ -98,6 +106,10 @@ def ensure_runs_dir():
     os.makedirs(os.path.join(repo_root(), "state", "runs"), exist_ok=True)
 
 
+def ensure_inbox_dir():
+    os.makedirs(os.path.join(ui_dir(), INBOX_DIR), exist_ok=True)
+
+
 def new_run_dir():
     ensure_runs_dir()
     run_tag = time.strftime("run_%Y%m%d_%H%M%S")
@@ -156,6 +168,61 @@ def run_orchestrator(repo_url: str, out_run_dir: str, log_queue: queue.Queue):
     return rc
 
 
+def run_execute_bridge(request_path: str, log_queue: queue.Queue):
+    if is_frozen():
+        cmd = [sys.executable, "--execute-bridge", request_path]
+    else:
+        cmd = [sys.executable, os.path.join(ui_dir(), "execute_orchestrator.py"), "--request", request_path]
+    creationflags = 0
+    startupinfo = None
+    if sys.platform.startswith("win"):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
+    p = subprocess.Popen(
+        cmd,
+        cwd=repo_root(),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True,
+        creationflags=creationflags,
+        startupinfo=startupinfo,
+    )
+    stdout_lines = []
+    if p.stdout:
+        for line in p.stdout:
+            stdout_lines.append(line)
+            log_queue.put(("LOG", line, None))
+    rc = p.wait()
+    output = "".join(stdout_lines)
+    try:
+        run_path = read_latest_run_path()
+        if run_path:
+            open(os.path.join(run_path, "ui_stdout.txt"), "w", encoding="utf-8").write(output)
+            open(os.path.join(run_path, "ui_rc.txt"), "w", encoding="utf-8").write(str(rc))
+    except Exception:
+        pass
+    return rc
+
+
+def write_submit_request(repo_url: str, run_dir: str) -> str:
+    ensure_inbox_dir()
+    request_path = os.path.join(ui_dir(), INBOX_DIR, SUBMIT_REQUEST)
+    payload = {
+        "repo_url": repo_url,
+        "run_dir": run_dir,
+        "requested_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
+    try:
+        open(request_path, "w", encoding="utf-8").write(json.dumps(payload, indent=2))
+    except Exception:
+        pass
+    return request_path
+
+
 class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -195,7 +262,7 @@ class IceCrawlerUI(tk.Tk):
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=20, pady=(6, 2))
+        header.pack(fill="x", padx=GUTTER_X, pady=(6, 2))
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(fill="x")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
@@ -219,17 +286,28 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(0, 0))
+        top.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
 
-        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
-        self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
+        top_left = tk.Frame(top, bg=BG)
+        top_left.pack(side="left", anchor="w")
+
+        self.url_entry = tk.Entry(
+            top_left,
+            bg=PANEL,
+            fg=DIM,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 14),
+            width=URL_ENTRY_WIDTH,
+        )
+        self.url_entry.pack(side="left", ipady=7)
         self.url_entry.insert(0, PLACEHOLDER)
         self._placeholder_active = True
         self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
         self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
 
-        action_panel = tk.Frame(top, bg=BG)
-        action_panel.pack(side="left", padx=(14, 0))
+        action_panel = tk.Frame(top_left, bg=BG)
+        action_panel.pack(side="left", padx=(ACTION_GAP, 0))
 
         button_row = tk.Frame(action_panel, bg=BG)
         button_row.pack(anchor="w")
@@ -275,14 +353,17 @@ class IceCrawlerUI(tk.Tk):
         self.run_console_scroll.pack(side="right", fill="y", pady=(0, 8), padx=(4, 6))
         self.run_console_text.configure(yscrollcommand=self.run_console_scroll.set)
 
+        top_spacer = tk.Frame(top, bg=BG)
+        top_spacer.pack(side="left", fill="x", expand=True)
+
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=20, pady=(0, 0))
+        phase_block.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
 
         ladder_column = tk.Frame(phase_block, bg=BG)
         ladder_column.pack(side="left", anchor="n")
 
         status_column = tk.Frame(phase_block, bg=BG)
-        status_column.pack(side="left", anchor="n", padx=(24, 0))
+        status_column.pack(side="left", anchor="n", padx=(COLUMN_GAP, 0))
 
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
@@ -336,11 +417,11 @@ class IceCrawlerUI(tk.Tk):
         self.handoff_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(2, 8))
+        self.progress_canvas.pack(fill="x", padx=GUTTER_X, pady=(2, 8))
         self._draw_progress(0)
 
         lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 0))
+        lower.pack(fill="x", padx=GUTTER_X, pady=(0, 0))
         residue_row = tk.Frame(lower, bg=BG)
         residue_row.pack(fill="x", anchor="w")
         self.output_panel = tk.Frame(residue_row, bg=BG)
@@ -425,7 +506,7 @@ class IceCrawlerUI(tk.Tk):
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(4, 8))
+        self.status_line.pack(side="bottom", anchor="w", padx=GUTTER_X, pady=(4, 8))
 
         self.ladder_animator = StageLadderAnimator(
             self,
@@ -583,15 +664,14 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = events
         self.has_activity = bool(events.strip())
 
-        if "RUN_COMPLETE" in events:
-            if "FROST_VERIFIED" in events:
-                self._lock("Frost")
-            if "GLACIER_VERIFIED" in events:
-                self._lock("Glacier")
-            if "CRYSTAL_VERIFIED" in events:
-                self._lock("Crystal")
-            if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
-                self._lock("Residue")
+        if "FROST_VERIFIED" in events:
+            self._lock("Frost")
+        if "GLACIER_VERIFIED" in events:
+            self._lock("Glacier")
+        if "CRYSTAL_VERIFIED" in events:
+            self._lock("Crystal")
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+            self._lock("Residue")
 
         self._set_progress_from_events(events)
         self.status_indicator.update(events, self.running)
@@ -817,10 +897,11 @@ class IceCrawlerUI(tk.Tk):
         self.run_path = run_dir
         self.last_events = ""
         self._reset_phase_ladder()
+        request_path = write_submit_request(repo_url, run_dir)
 
         def work():
             try:
-                rc = run_orchestrator(repo_url, run_dir, self.q)
+                rc = run_execute_bridge(request_path, self.q)
                 self.q.put(("DONE", rc, run_dir))
             except Exception:
                 self.q.put(("ERR", -1, traceback.format_exc()))
@@ -860,4 +941,9 @@ if __name__ == "__main__":
 
         sys.argv = [sys.argv[0]] + sys.argv[2:]
         raise SystemExit(orchestrator_main())
+    if len(sys.argv) > 1 and sys.argv[1] == "--execute-bridge":
+        from ui.execute_orchestrator import main as execute_bridge_main
+
+        sys.argv = [sys.argv[0]] + sys.argv[2:]
+        raise SystemExit(execute_bridge_main(sys.argv[1:]))
     IceCrawlerUI().mainloop()
