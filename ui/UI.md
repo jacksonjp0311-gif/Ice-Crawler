@@ -24,3 +24,4 @@ The banner is a UI indicator and does not alter any run artifacts.
 
 A blue-bordered **AGENTS DEPLOYED** banner appears only when agentic hooks
 report success (`AGENTIC_FROST_VERIFIED` or `AGENTIC_CRYSTAL_VERIFIED`).
+Both banners are rendered alongside the ladder to avoid layout shifts in the output panel.
