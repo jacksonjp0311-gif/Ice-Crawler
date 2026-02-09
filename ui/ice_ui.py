@@ -40,9 +40,9 @@ ORANGE = "#ff9b1a"
 ORANGE2 = "#ff6a00"
 DIM = "#6fb9c9"
 
-GUTTER_X = 16
-ACTION_GAP = 8
-COLUMN_GAP = 12
+GUTTER_X = 14
+ACTION_GAP = 6
+COLUMN_GAP = 10
 URL_ENTRY_WIDTH = 68
 
 STAGE_REVEALS = {
@@ -457,7 +457,7 @@ class IceCrawlerUI(tk.Tk):
         self.agent_residue_state = None
 
         self.log_column = tk.Frame(residue_row, bg=BG)
-        self.log_column.pack(side="right", anchor="n", padx=(14, 0))
+        self.log_column.pack(side="right", anchor="n", padx=(10, 0))
 
         self.cmd_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
         self.cmd_panel.pack(anchor="n", pady=(0, 12))
@@ -664,13 +664,13 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = events
         self.has_activity = bool(events.strip())
 
-        if "FROST_VERIFIED" in events:
+        if ("FROST_VERIFIED" in events) or ("UI_EVENT:FROST_PENDING_TO_VERIFIED" in events):
             self._lock("Frost")
-        if "GLACIER_VERIFIED" in events:
+        if ("GLACIER_VERIFIED" in events) or ("UI_EVENT:GLACIER_VERIFIED" in events):
             self._lock("Glacier")
-        if "CRYSTAL_VERIFIED" in events:
+        if ("CRYSTAL_VERIFIED" in events) or ("UI_EVENT:CRYSTAL_VERIFIED" in events):
             self._lock("Crystal")
-        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events) or ("UI_EVENT:RESIDUE_EMPTY_LOCK" in events):
             self._lock("Residue")
 
         self._set_progress_from_events(events)
