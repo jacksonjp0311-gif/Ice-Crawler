@@ -48,6 +48,8 @@ UI entrypoint:
 
 Recent enhancement: Glacier now uses a deterministic **triadic-balanced selector** (frost/glacier/crystal buckets) to keep artifact projection diverse and bounded while preserving deterministic ordering.
 
+Optional extension: Φ-extremal agentic hooks can partition Frost refs and Crystal artifacts into bounded agent tasks for multi-agent extraction (opt-out via environment flags).
+
 ## Repository layout
 
 - `engine/` — phase engines and orchestrator.
@@ -192,6 +194,7 @@ Inside each run directory (`state/runs/<run>/`):
 
 - `docs/ICE_CRAWLER_ARCHITECTURE_v1_1.md` — architecture overview and invariants.
 - `docs/CODEX_777_TRIADIC_BOUNDARY_EXCESS_v2_0.md` — boundary-excess principle note and engineering interpretation.
+- `docs/CODEX_PHI_EXTREMAL_CONSTRAINT_AGENTICS_v1_0.md` — φ-extremal agentics principle and operational hooks.
 
 ## Troubleshooting
 

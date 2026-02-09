@@ -19,3 +19,18 @@ stage name. This is UI-only and does not alter engine flow.
 
 A bordered orange banner appears after `RUN_COMPLETE` is observed.
 The banner is a UI indicator and does not alter any run artifacts.
+
+## Agents status row
+
+The blue **AGENTS** status row appears only when agentic hooks
+write success artifacts (`agentic/AGENTS_OK.json`) or failure artifacts (`agentic/AGENTS_FAIL.json`).
+Both banners are rendered alongside the ladder to avoid layout shifts in the output panel.
+
+The output residue panel mirrors the agentic status once per transition:
+
+- `[ Agents OK — agentic/AGENTS_OK.json ]`
+- `[ Agents FAILED — agentic/AGENTS_FAIL.json ]`
+
+## Run thread box
+
+A blue "RUN THREAD" panel appears to the right of the output residue section. It streams the last events from `ui_events.jsonl` so operator context is visible without spawning external consoles.
