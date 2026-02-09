@@ -47,3 +47,12 @@ Post-run residue must be empty except explicit retained artifacts:
 ## Determinism contract
 
 For identical `(repo, revision, config)` inputs, output artifacts should remain stable in file set and hash structure.
+
+## Optional agentic hooks (non-invasive)
+
+An opt-in agentic layer can attach to the run **without modifying core engines**:
+
+- **Frost hook**: partitions `git ls-remote` ref metadata into φ-scaled tasks.
+- **Crystal hook**: partitions the artifact manifest into φ-scaled tasks.
+
+Hooks run before Glacier and before the residue lock when enabled. They emit artifacts into `<run>/frost_agentic/` and `<run>/agentic/` respectively and do not alter core selection logic.
