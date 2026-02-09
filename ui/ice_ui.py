@@ -283,6 +283,12 @@ class IceCrawlerUI(tk.Tk):
         status_column = tk.Frame(phase_block, bg=BG)
         status_column.pack(side="left", anchor="n", padx=(24, 0))
 
+        ladder_column = tk.Frame(phase_block, bg=BG)
+        ladder_column.pack(side="left", anchor="n", pady=(28, 0))
+
+        status_column = tk.Frame(phase_block, bg=BG)
+        status_column.pack(side="left", anchor="n", padx=(24, 0))
+
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
         for p in PHASES:
