@@ -1,4 +1,4 @@
-import os, sys, json, shutil, subprocess, datetime, time, stat
+import os, sys, json, shutil, subprocess, datetime, time, stat, importlib.util, importlib
 
 from .frost import frost_telemetry
 from .glacier import glacier_clone, glacier_select, glacier_emit
@@ -45,6 +45,11 @@ def emit_ui(state_run: str, event: str, payload=None):
         rec["payload"]=payload
     with open(p,"a",encoding="utf-8") as f:
         f.write(json.dumps(rec, ensure_ascii=False)+"\n")
+
+def agentics_hook():
+    if importlib.util.find_spec("agentics.hook") is None:
+        return None
+    return importlib.import_module("agentics.hook")
 
 def ai_handoff_emit(state_run: str, manifest, repo_url: str, repo_head: str):
     ai_dir = os.path.join(state_run, "ai_handoff")
@@ -101,6 +106,7 @@ def main():
     residue_path = os.path.join(state_run,"residue_truth.json")
 
     emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
+    agentic = agentics_hook()
 
     # Frost: telemetry-only
     emit_ui(state_run, "FROST_PENDING")
@@ -113,6 +119,13 @@ def main():
     try:
         if os.path.exists(temp_dir):
             purge_dir_strict(temp_dir)
+
+        if agentic is not None:
+            try:
+                agentic.run_frost_hook(state_run, repo)
+                emit_ui(state_run, "AGENTIC_FROST_VERIFIED")
+            except Exception as exc:
+                emit_ui(state_run, "AGENTIC_FROST_ERROR", {"error": str(exc)})
 
         # Glacier: ephemeral clone + bounded selection
         emit_ui(state_run, "GLACIER_PENDING")
@@ -173,6 +186,13 @@ def main():
 
         # AI handoff (restored)
         ai_handoff_emit(state_run, manifest, repo, frost.get("head","unknown"))
+
+        if agentic is not None:
+            try:
+                agentic.run_crystal_hook(state_run)
+                emit_ui(state_run, "AGENTIC_CRYSTAL_VERIFIED")
+            except Exception as exc:
+                emit_ui(state_run, "AGENTIC_CRYSTAL_ERROR", {"error": str(exc)})
 
     finally:
         purge_ok = purge_dir_strict(temp_dir)

@@ -19,3 +19,8 @@ stage name. This is UI-only and does not alter engine flow.
 
 A bordered orange banner appears after `RUN_COMPLETE` is observed.
 The banner is a UI indicator and does not alter any run artifacts.
+
+## Agents deployed banner
+
+A blue-bordered **AGENTS DEPLOYED** banner appears only when agentic hooks
+report success (`AGENTIC_FROST_VERIFIED` or `AGENTIC_CRYSTAL_VERIFIED`).
