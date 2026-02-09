@@ -186,9 +186,11 @@ def main():
 
             flat=rel.replace("/","_")
             dst=os.path.join(bundle, flat)
-            shutil.copy2(src, dst)
-
-            manifest.append({"path":rel,"sha256":sha256_file(dst)})
+            try:
+                shutil.copy2(src, dst)
+                manifest.append({"path":rel,"sha256":sha256_file(dst)})
+            except Exception:
+                continue
 
         manifest = sorted(manifest, key=lambda x: x["path"])
 

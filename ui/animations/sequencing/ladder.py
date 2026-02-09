@@ -32,30 +32,30 @@ class StageLadderAnimator:
                 if phase == "Crystal" and state in {"active", "locked"}:
                     self.phase_flash[phase] = 6
 
-        if "FROST_VERIFIED" in events:
+        if ("FROST_VERIFIED" in events) or ("UI_EVENT:FROST_PENDING_TO_VERIFIED" in events):
             set_state("Frost", "locked")
-        elif "FROST_PENDING" in events:
+        elif ("FROST_PENDING" in events) or ("UI_EVENT:FROST_PENDING" in events):
             set_state("Frost", "active")
         else:
             set_state("Frost", "idle")
 
-        if "GLACIER_VERIFIED" in events:
+        if ("GLACIER_VERIFIED" in events) or ("UI_EVENT:GLACIER_VERIFIED" in events):
             set_state("Glacier", "locked")
-        elif "GLACIER_PENDING" in events:
+        elif ("GLACIER_PENDING" in events) or ("UI_EVENT:GLACIER_PENDING" in events):
             set_state("Glacier", "active")
         else:
             set_state("Glacier", "idle")
 
-        if "CRYSTAL_VERIFIED" in events:
+        if ("CRYSTAL_VERIFIED" in events) or ("UI_EVENT:CRYSTAL_VERIFIED" in events):
             set_state("Crystal", "locked")
-        elif "CRYSTAL_PENDING" in events:
+        elif ("CRYSTAL_PENDING" in events) or ("UI_EVENT:CRYSTAL_PENDING" in events):
             set_state("Crystal", "active")
         else:
             set_state("Crystal", "idle")
 
-        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events) or ("UI_EVENT:RESIDUE_EMPTY_LOCK" in events):
             set_state("Residue", "locked")
-        elif "RESIDUE_PENDING" in events:
+        elif ("RESIDUE_PENDING" in events) or ("UI_EVENT:RESIDUE_PENDING" in events):
             set_state("Residue", "active")
         else:
             set_state("Residue", "idle")
