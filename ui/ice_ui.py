@@ -624,6 +624,45 @@ class IceCrawlerUI(tk.Tk):
             else:
                 self.agent_residue_label.pack_forget()
 
+        agentic_dir = os.path.join(self.run_path, "agentic")
+        marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
+        marker_fail = os.path.join(agentic_dir, "AGENTS_FAIL.json")
+        marker_active = os.path.join(agentic_dir, "AGENTS_ACTIVE.json")
+        agent_state = None
+        if os.path.exists(marker_fail):
+            agent_state = "fail"
+        elif os.path.exists(marker_ok):
+            agent_state = "ok"
+        elif os.path.exists(marker_active):
+            agent_state = "active"
+
+        if agent_state and (not self.agent_visible):
+            self.agent_status_row.pack(anchor="w", pady=(2, 8))
+            self.agent_visible = True
+        elif (not agent_state) and self.agent_visible:
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+
+        if agent_state != self.agent_state:
+            self.agent_state = agent_state
+            if agent_state == "ok":
+                self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "fail":
+                self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
+                self.agent_state_frame.configure(highlightbackground=ORANGE2)
+                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "active":
+                self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.pack_forget()
+            else:
+                self.agent_residue_label.pack_forget()
+
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
