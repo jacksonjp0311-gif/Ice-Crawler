@@ -195,7 +195,7 @@ class IceCrawlerUI(tk.Tk):
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
         header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=20, pady=(10, 2))
+        header.pack(fill="x", padx=20, pady=(6, 2))
         title_row = tk.Frame(header, bg=BG)
         title_row.pack(fill="x")
         tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
@@ -219,7 +219,7 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(0, 2))
+        top.pack(fill="x", padx=20, pady=(0, 0))
 
         self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
         self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
@@ -252,7 +252,7 @@ class IceCrawlerUI(tk.Tk):
         self._submit_line_2.pack(anchor="w", pady=(3, 0))
 
         self.run_console_panel = tk.Frame(action_panel, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.run_console_panel.pack(anchor="w", pady=(4, 0))
+        self.run_console_panel.pack(anchor="w", pady=(2, 0))
         self.run_console_panel.configure(width=240, height=180)
         self.run_console_panel.pack_propagate(False)
         tk.Label(self.run_console_panel, text="RUN CONSOLE", fg=BLUE2, bg=BG, font=("Segoe UI", 10, "bold")).pack(
@@ -303,7 +303,7 @@ class IceCrawlerUI(tk.Tk):
             self.phase_reveals[p] = reveal
 
         self.agent_status_row = tk.Frame(status_column, bg=BG)
-        self.agent_status_row.pack(anchor="w", pady=(2, 8))
+        self.agent_status_row.pack(anchor="w", pady=(2, 6))
         self.agent_status_row.pack_forget()
 
         self.agent_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
@@ -331,16 +331,16 @@ class IceCrawlerUI(tk.Tk):
         self.agent_state = None
 
         self.handoff_badge = HandoffCompleteBadge(status_column, command=self.open_handoff_folder)
-        self.handoff_badge.pack(anchor="w", pady=(0, 8))
+        self.handoff_badge.pack(anchor="w", pady=(0, 6))
         self.handoff_badge.pack_forget()
         self.handoff_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
+        self.progress_canvas.pack(fill="x", padx=20, pady=(2, 8))
         self._draw_progress(0)
 
         lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 2))
+        lower.pack(fill="x", padx=20, pady=(0, 0))
         residue_row = tk.Frame(lower, bg=BG)
         residue_row.pack(fill="x", anchor="w")
         self.output_panel = tk.Frame(residue_row, bg=BG)
@@ -425,7 +425,7 @@ class IceCrawlerUI(tk.Tk):
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
+        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(4, 8))
 
         self.ladder_animator = StageLadderAnimator(
             self,
@@ -610,7 +610,7 @@ class IceCrawlerUI(tk.Tk):
 
         if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.handoff_visible:
-                self.handoff_badge.pack(anchor="w", pady=(0, 8))
+                self.handoff_badge.pack(anchor="w", pady=(0, 6))
                 self.handoff_visible = True
         else:
             if self.handoff_visible:
@@ -630,7 +630,7 @@ class IceCrawlerUI(tk.Tk):
             agent_state = "active"
 
         if agent_state and (not self.agent_visible):
-            self.agent_status_row.pack(anchor="w", pady=(2, 8))
+            self.agent_status_row.pack(anchor="w", pady=(2, 6))
             self.agent_visible = True
         elif (not agent_state) and self.agent_visible:
             self.agent_status_row.pack_forget()
