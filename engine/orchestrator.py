@@ -179,16 +179,18 @@ def main():
         manifest=[]
         for rel in picked:
             src=os.path.join(temp_dir, rel)
-            if not os.path.exists(src):
-                continue
-            if os.path.getsize(src)/1024.0 > max_kb:
-                continue
+            try:
+                if not os.path.exists(src):
+                    continue
+                if os.path.getsize(src)/1024.0 > max_kb:
+                    continue
 
-            flat=rel.replace("/","_")
-            dst=os.path.join(bundle, flat)
-            shutil.copy2(src, dst)
-
-            manifest.append({"path":rel,"sha256":sha256_file(dst)})
+                flat=rel.replace("/","_")
+                dst=os.path.join(bundle, flat)
+                shutil.copy2(src, dst)
+                manifest.append({"path":rel,"sha256":sha256_file(dst)})
+            except Exception:
+                continue
 
         manifest = sorted(manifest, key=lambda x: x["path"])
 
