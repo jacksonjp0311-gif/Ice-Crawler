@@ -314,14 +314,16 @@ class IceCrawlerUI(tk.Tk):
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        output_panel = tk.Frame(lower, bg=BG)
-        output_panel.pack(fill="x", anchor="w")
-        tk.Label(output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
+        residue_row = tk.Frame(lower, bg=BG)
+        residue_row.pack(fill="x", anchor="w")
+        self.output_panel = tk.Frame(residue_row, bg=BG)
+        self.output_panel.pack(side="left", fill="both", expand=True, anchor="w")
+        tk.Label(self.output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
             anchor="w"
         )
-        tk.Frame(output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
+        tk.Frame(self.output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
         self.artifact_link = tk.Label(
-            output_panel,
+            self.output_panel,
             text="All that remains...",
             fg=BLUE2,
             bg=BG,
@@ -334,7 +336,7 @@ class IceCrawlerUI(tk.Tk):
         self.artifact_link.pack(anchor="w", pady=(2, 8))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
         self.agent_residue_label = tk.Label(
-            output_panel,
+            self.output_panel,
             text="",
             fg=BLUE2,
             bg=BG,
@@ -345,6 +347,25 @@ class IceCrawlerUI(tk.Tk):
         self.agent_residue_label.pack(anchor="w", pady=(0, 8))
         self.agent_residue_label.pack_forget()
         self.agent_residue_state = None
+
+        self.log_panel = tk.Frame(residue_row, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.log_panel.pack(side="right", anchor="n", padx=(14, 0))
+        tk.Label(self.log_panel, text="RUN THREAD", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+        self.thread_text = tk.Text(
+            self.log_panel,
+            height=10,
+            width=38,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+        )
+        self.thread_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
+        self.thread_text.configure(state="disabled")
 
         timeline_frame = tk.Frame(lower, bg=BG)
         timeline_frame.pack(anchor="w", pady=(4, 0))
@@ -388,12 +409,12 @@ class IceCrawlerUI(tk.Tk):
 
     def _on_resize(self, event):
         self._paint_background()
-        if hasattr(self, "artifact_link"):
-            width = max(getattr(event, "width", self.winfo_width()), 700)
-            self.artifact_link.configure(wraplength=max(520, width - 240))
+        if hasattr(self, "artifact_link") and hasattr(self, "output_panel"):
+            width = max(self.output_panel.winfo_width(), 520)
+            self.artifact_link.configure(wraplength=max(420, width - 20))
         if hasattr(self, "agent_residue_label"):
-            width = max(getattr(event, "width", self.winfo_width()), 700)
-            self.agent_residue_label.configure(wraplength=max(520, width - 240))
+            width = max(self.output_panel.winfo_width(), 520)
+            self.agent_residue_label.configure(wraplength=max(420, width - 20))
 
     def _paint_background(self):
         c = self.bg_canvas
@@ -523,6 +544,7 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator.update(events, self.running)
         self.timeline.update(events)
         self.run_complete = "RUN_COMPLETE" in events
+        self._update_thread_box(events)
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
@@ -610,9 +632,32 @@ class IceCrawlerUI(tk.Tk):
         self._draw_progress(8)
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
+        self._reset_thread_box()
         self.run_complete = False
         self.has_activity = False
         self.ladder_animator.reset()
+
+    def _update_thread_box(self, events: str):
+        if not hasattr(self, "thread_text"):
+            return
+        lines = [line for line in events.splitlines() if line.strip()]
+        tail = lines[-12:] if len(lines) > 12 else lines
+        content = "\n".join(tail)
+        if getattr(self, "_thread_cache", None) == content:
+            return
+        self._thread_cache = content
+        self.thread_text.configure(state="normal")
+        self.thread_text.delete("1.0", "end")
+        self.thread_text.insert("end", content)
+        self.thread_text.configure(state="disabled")
+
+    def _reset_thread_box(self):
+        if not hasattr(self, "thread_text"):
+            return
+        self.thread_text.configure(state="normal")
+        self.thread_text.delete("1.0", "end")
+        self.thread_text.configure(state="disabled")
+        self._thread_cache = ""
 
     def open_artifact_folder(self):
         if not self.run_path:
