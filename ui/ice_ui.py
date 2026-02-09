@@ -18,6 +18,7 @@ if ROOT_DIR not in sys.path:
 
 from ui.animations import (
     ExecutionTimeline,
+    HandoffCompleteBadge,
     RitualTriangleButton,
     StageLadderAnimator,
     StatusIndicator,
@@ -116,7 +117,7 @@ def _status_text_for_path(path: str, max_chars: int = 74) -> str:
     return f"Run: ...{p[-(max_chars-8):]}"
 
 
-def run_orchestrator(repo_url: str, out_run_dir: str):
+def run_orchestrator(repo_url: str, out_run_dir: str, log_queue: queue.Queue):
     temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
     if is_frozen():
         cmd = [sys.executable, "--orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
@@ -128,21 +129,30 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    p = subprocess.run(
+    p = subprocess.Popen(
         cmd,
         cwd=repo_root(),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        bufsize=1,
+        universal_newlines=True,
         creationflags=creationflags,
         startupinfo=startupinfo,
     )
+    stdout_lines = []
+    if p.stdout:
+        for line in p.stdout:
+            stdout_lines.append(line)
+            log_queue.put(("LOG", line, None))
+    rc = p.wait()
+    output = "".join(stdout_lines)
     try:
-        open(os.path.join(out_run_dir, "ui_stdout.txt"), "w", encoding="utf-8").write(p.stdout or "")
-        open(os.path.join(out_run_dir, "ui_rc.txt"), "w", encoding="utf-8").write(str(p.returncode))
+        open(os.path.join(out_run_dir, "ui_stdout.txt"), "w", encoding="utf-8").write(output)
+        open(os.path.join(out_run_dir, "ui_rc.txt"), "w", encoding="utf-8").write(str(rc))
     except Exception:
         pass
-    return p.returncode
+    return rc
 
 
 class IceCrawlerUI(tk.Tk):
@@ -208,7 +218,7 @@ class IceCrawlerUI(tk.Tk):
         self.status_indicator = StatusIndicator(self.status_indicator_label)
 
         top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(8, 10))
+        top.pack(fill="x", padx=20, pady=(6, 4))
 
         self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
         self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
@@ -240,13 +250,43 @@ class IceCrawlerUI(tk.Tk):
         self._submit_line_2 = tk.Frame(action_panel, bg=ORANGE, height=1, width=170)
         self._submit_line_2.pack(anchor="w", pady=(3, 0))
 
+        self.run_console_panel = tk.Frame(action_panel, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.run_console_panel.pack(anchor="w", pady=(8, 0))
+        self.run_console_panel.configure(width=240, height=180)
+        self.run_console_panel.pack_propagate(False)
+        tk.Label(self.run_console_panel, text="RUN CONSOLE", fg=BLUE2, bg=BG, font=("Segoe UI", 10, "bold")).pack(
+            anchor="w", padx=8, pady=(6, 2)
+        )
+        self.run_console_text = tk.Text(
+            self.run_console_panel,
+            height=7,
+            width=32,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 9),
+            wrap="word",
+        )
+        self.run_console_text.pack(side="left", padx=(8, 0), pady=(0, 8), fill="both", expand=True)
+        self.run_console_text.configure(state="disabled")
+        self.run_console_scroll = tk.Scrollbar(self.run_console_panel, command=self.run_console_text.yview)
+        self.run_console_scroll.pack(side="right", fill="y", pady=(0, 8), padx=(4, 6))
+        self.run_console_text.configure(yscrollcommand=self.run_console_scroll.set)
+
         phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=20, pady=(4, 6))
+        phase_block.pack(fill="x", padx=20, pady=(0, 4))
+
+        ladder_column = tk.Frame(phase_block, bg=BG)
+        ladder_column.pack(side="left", anchor="n")
+
+        status_column = tk.Frame(phase_block, bg=BG)
+        status_column.pack(side="left", anchor="n", padx=(24, 0))
 
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
         for p in PHASES:
-            row = tk.Frame(phase_block, bg=BG)
+            row = tk.Frame(ladder_column, bg=BG)
             row.pack(anchor="w", pady=2)
             dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 24, "bold"))
             dot.pack(side="left")
@@ -261,20 +301,55 @@ class IceCrawlerUI(tk.Tk):
             self.phase_checks[p] = check
             self.phase_reveals[p] = reveal
 
+        self.agent_status_row = tk.Frame(status_column, bg=BG)
+        self.agent_status_row.pack(anchor="w", pady=(2, 8))
+        self.agent_status_row.pack_forget()
+
+        self.agent_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
+        self.agent_label = tk.Label(
+            self.agent_frame,
+            text="AGENTS",
+            fg=BLUE2,
+            bg=BG,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.agent_label.pack(padx=12, pady=6)
+        self.agent_frame.pack(side="left")
+
+        self.agent_state_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
+        self.agent_state_label = tk.Label(
+            self.agent_state_frame,
+            text="AGENTS: NOT RUN",
+            fg=BLUE2,
+            bg=BG,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.agent_state_label.pack(padx=12, pady=6)
+        self.agent_state_frame.pack(side="left", padx=(10, 0))
+        self.agent_visible = False
+        self.agent_state = None
+
+        self.handoff_badge = HandoffCompleteBadge(status_column, command=self.open_handoff_folder)
+        self.handoff_badge.pack(anchor="w", pady=(0, 8))
+        self.handoff_badge.pack_forget()
+        self.handoff_visible = False
+
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
         self._draw_progress(0)
 
         lower = tk.Frame(shell, bg=BG)
         lower.pack(fill="x", padx=20, pady=(0, 2))
-        output_panel = tk.Frame(lower, bg=BG)
-        output_panel.pack(fill="x", anchor="w")
-        tk.Label(output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
+        residue_row = tk.Frame(lower, bg=BG)
+        residue_row.pack(fill="x", anchor="w")
+        self.output_panel = tk.Frame(residue_row, bg=BG)
+        self.output_panel.pack(side="left", fill="both", expand=True, anchor="w")
+        tk.Label(self.output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
             anchor="w"
         )
-        tk.Frame(output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
+        tk.Frame(self.output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
         self.artifact_link = tk.Label(
-            output_panel,
+            self.output_panel,
             text="All that remains...",
             fg=BLUE2,
             bg=BG,
@@ -282,26 +357,72 @@ class IceCrawlerUI(tk.Tk):
             font=("Consolas", 12),
             wraplength=900,
             justify="left",
+            anchor="w",
         )
         self.artifact_link.pack(anchor="w", pady=(2, 8))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+        self.agent_residue_label = tk.Label(
+            self.output_panel,
+            text="",
+            fg=BLUE2,
+            bg=BG,
+            font=("Consolas", 11, "bold"),
+            justify="left",
+            anchor="w",
+        )
+        self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+        self.agent_residue_label.pack_forget()
+        self.agent_residue_state = None
+
+        self.log_column = tk.Frame(residue_row, bg=BG)
+        self.log_column.pack(side="right", anchor="n", padx=(14, 0))
+
+        self.cmd_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.cmd_panel.pack(anchor="n", pady=(0, 12))
+        self.cmd_panel.configure(width=320, height=150)
+        self.cmd_panel.pack_propagate(False)
+        tk.Label(self.cmd_panel, text="CMD TRACE", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+        self.cmd_text = tk.Text(
+            self.cmd_panel,
+            height=6,
+            width=38,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+        )
+        self.cmd_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
+        self.cmd_text.configure(state="disabled")
+
+        self.log_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.log_panel.pack(anchor="n")
+        self.log_panel.configure(width=320, height=150)
+        self.log_panel.pack_propagate(False)
+        tk.Label(self.log_panel, text="RUN THREAD", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+        self.thread_text = tk.Text(
+            self.log_panel,
+            height=6,
+            width=38,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+        )
+        self.thread_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
+        self.thread_text.configure(state="disabled")
 
         timeline_frame = tk.Frame(lower, bg=BG)
         timeline_frame.pack(anchor="w", pady=(4, 0))
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
-        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
-        self.completion_label = tk.Label(
-            self.completion_frame,
-            text="handoff complete",
-            fg=ORANGE,
-            bg=BG,
-            font=("Segoe UI", 13, "bold"),
-        )
-        self.completion_label.pack(padx=12, pady=6)
-        self.completion_frame.pack(anchor="w", pady=(8, 0))
-        self.completion_frame.pack_forget()
-        self.completion_visible = False
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -340,9 +461,12 @@ class IceCrawlerUI(tk.Tk):
 
     def _on_resize(self, event):
         self._paint_background()
-        if hasattr(self, "artifact_link"):
-            width = max(getattr(event, "width", self.winfo_width()), 700)
-            self.artifact_link.configure(wraplength=max(520, width - 240))
+        if hasattr(self, "artifact_link") and hasattr(self, "output_panel"):
+            width = max(self.output_panel.winfo_width(), 520)
+            self.artifact_link.configure(wraplength=max(420, width - 20))
+        if hasattr(self, "agent_residue_label"):
+            width = max(self.output_panel.winfo_width(), 520)
+            self.agent_residue_label.configure(wraplength=max(420, width - 20))
 
     def _paint_background(self):
         c = self.bg_canvas
@@ -458,41 +582,79 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = events
         self.has_activity = bool(events.strip())
 
-        if "FROST_VERIFIED" in events:
-            self._lock("Frost")
-        if "GLACIER_VERIFIED" in events:
-            self._lock("Glacier")
-        if "CRYSTAL_VERIFIED" in events:
-            self._lock("Crystal")
-        if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
-            self._lock("Residue")
+        if "RUN_COMPLETE" in events:
+            if "FROST_VERIFIED" in events:
+                self._lock("Frost")
+            if "GLACIER_VERIFIED" in events:
+                self._lock("Glacier")
+            if "CRYSTAL_VERIFIED" in events:
+                self._lock("Crystal")
+            if ("RESIDUE_LOCK" in events) or ("RESIDUE_EMPTY_LOCK" in events):
+                self._lock("Residue")
 
         self._set_progress_from_events(events)
-        self.ladder_animator.update_from_events(events)
         self.status_indicator.update(events, self.running)
-        self.timeline.update(events)
         self.run_complete = "RUN_COMPLETE" in events
+        if self.run_complete:
+            self.ladder_animator.update_from_events(events)
+            self.timeline.update(events)
+        self._update_thread_box(events)
+        self._update_cmd_box()
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
-        if "CRYSTAL_VERIFIED" in events and ai_path:
-            if "RUN_COMPLETE" in events:
-                self.artifact_link.configure(text=f"All that remains...\n{ai_path}")
-            else:
-                self.artifact_link.configure(text=ai_path)
+        if "RUN_COMPLETE" in events and ai_path:
+            self.artifact_link.configure(text=f"All that remains...\n{ai_path}")
         else:
             self.artifact_link.configure(text="All that remains...")
 
         if ("RUN_COMPLETE" in events) and (not self.running):
-            if not self.completion_visible:
-                self.completion_label.configure(fg=ORANGE)
-                self.completion_frame.configure(highlightbackground=ORANGE)
-                self.completion_frame.pack(anchor="w", pady=(8, 0))
-                self.completion_visible = True
+            if not self.handoff_visible:
+                self.handoff_badge.pack(anchor="w", pady=(0, 8))
+                self.handoff_visible = True
         else:
-            if self.completion_visible:
-                self.completion_frame.pack_forget()
-                self.completion_visible = False
+            if self.handoff_visible:
+                self.handoff_badge.pack_forget()
+                self.handoff_visible = False
+
+        agentic_dir = os.path.join(self.run_path, "agentic")
+        marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
+        marker_fail = os.path.join(agentic_dir, "AGENTS_FAIL.json")
+        marker_active = os.path.join(agentic_dir, "AGENTS_ACTIVE.json")
+        agent_state = None
+        if os.path.exists(marker_fail):
+            agent_state = "fail"
+        elif os.path.exists(marker_ok):
+            agent_state = "ok"
+        elif os.path.exists(marker_active):
+            agent_state = "active"
+
+        if agent_state and (not self.agent_visible):
+            self.agent_status_row.pack(anchor="w", pady=(2, 8))
+            self.agent_visible = True
+        elif (not agent_state) and self.agent_visible:
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+
+        if agent_state != self.agent_state:
+            self.agent_state = agent_state
+            if agent_state == "ok":
+                self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "fail":
+                self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
+                self.agent_state_frame.configure(highlightbackground=ORANGE2)
+                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "active":
+                self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.pack_forget()
+            else:
+                self.agent_residue_label.pack_forget()
 
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
@@ -505,15 +667,95 @@ class IceCrawlerUI(tk.Tk):
                 self.phase_checks[p].configure(text="", fg=BLUE2)
             if hasattr(self, "reveal_started"):
                 self.reveal_started[p] = False
-        if hasattr(self, "completion_frame"):
-            self.completion_frame.pack_forget()
-            self.completion_visible = False
+        if hasattr(self, "handoff_badge"):
+            self.handoff_badge.pack_forget()
+            self.handoff_visible = False
+        if hasattr(self, "agent_frame"):
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+            self.agent_state_label.configure(text="AGENTS: NOT RUN", fg=BLUE2)
+            self.agent_state_frame.configure(highlightbackground=BLUE2)
+        if hasattr(self, "agent_residue_label"):
+            self.agent_residue_label.pack_forget()
+            self.agent_residue_state = None
         self._draw_progress(8)
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
+        self._reset_thread_box()
+        self._reset_cmd_box()
+        self._reset_run_console()
         self.run_complete = False
         self.has_activity = False
         self.ladder_animator.reset()
+
+    def _update_thread_box(self, events: str):
+        if not hasattr(self, "thread_text"):
+            return
+        lines = [line for line in events.splitlines() if line.strip()]
+        tail = lines[-12:] if len(lines) > 12 else lines
+        content = "\n".join(tail)
+        if getattr(self, "_thread_cache", None) == content:
+            return
+        self._thread_cache = content
+        self.thread_text.configure(state="normal")
+        self.thread_text.delete("1.0", "end")
+        self.thread_text.insert("end", content)
+        self.thread_text.configure(state="disabled")
+
+    def _reset_thread_box(self):
+        if not hasattr(self, "thread_text"):
+            return
+        self.thread_text.configure(state="normal")
+        self.thread_text.delete("1.0", "end")
+        self.thread_text.configure(state="disabled")
+        self._thread_cache = ""
+
+    def _update_cmd_box(self):
+        if not hasattr(self, "cmd_text"):
+            return
+        cmd_path = os.path.join(self.run_path, "run_cmds.jsonl")
+        if not os.path.exists(cmd_path):
+            if getattr(self, "_cmd_cache", None) != "":
+                self._cmd_cache = ""
+                self.cmd_text.configure(state="normal")
+                self.cmd_text.delete("1.0", "end")
+                self.cmd_text.configure(state="disabled")
+            return
+        content = read_text(cmd_path)
+        lines = [line for line in content.splitlines() if line.strip()]
+        tail = lines[-10:] if len(lines) > 10 else lines
+        display = "\n".join(tail)
+        if getattr(self, "_cmd_cache", None) == display:
+            return
+        self._cmd_cache = display
+        self.cmd_text.configure(state="normal")
+        self.cmd_text.delete("1.0", "end")
+        self.cmd_text.insert("end", display)
+        self.cmd_text.configure(state="disabled")
+
+    def _reset_cmd_box(self):
+        if not hasattr(self, "cmd_text"):
+            return
+        self.cmd_text.configure(state="normal")
+        self.cmd_text.delete("1.0", "end")
+        self.cmd_text.configure(state="disabled")
+        self._cmd_cache = ""
+
+    def _append_run_console(self, line: str):
+        if not hasattr(self, "run_console_text"):
+            return
+        self.run_console_text.configure(state="normal")
+        self.run_console_text.insert("end", line)
+        self.run_console_text.see("end")
+        self.run_console_text.configure(state="disabled")
+
+    def _reset_run_console(self):
+        if not hasattr(self, "run_console_text"):
+            return
+        self.run_console_text.configure(state="normal")
+        self.run_console_text.delete("1.0", "end")
+        self.run_console_text.configure(state="disabled")
 
     def open_artifact_folder(self):
         if not self.run_path:
@@ -539,6 +781,26 @@ class IceCrawlerUI(tk.Tk):
         except Exception as e:
             messagebox.showerror("ICE-CRAWLER", str(e))
 
+    def open_handoff_folder(self):
+        if not self.run_path:
+            messagebox.showinfo("ICE-CRAWLER", "No run folder yet.")
+            return
+        ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
+        if ai_path and os.path.exists(ai_path):
+            target = ai_path
+        else:
+            messagebox.showinfo("ICE-CRAWLER", "No handoff path yet.")
+            return
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(target)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", target])
+            else:
+                subprocess.Popen(["xdg-open", target])
+        except Exception as e:
+            messagebox.showerror("ICE-CRAWLER", str(e))
+
     def on_submit(self):
         repo_url = self.url_entry.get().strip()
         if (not repo_url) or (repo_url == PLACEHOLDER):
@@ -549,7 +811,6 @@ class IceCrawlerUI(tk.Tk):
             return
 
         self.running = True
-        self.submit_btn.set_enabled(False)
 
         run_dir = new_run_dir()
         write_latest_run_path(run_dir)
@@ -559,7 +820,7 @@ class IceCrawlerUI(tk.Tk):
 
         def work():
             try:
-                rc = run_orchestrator(repo_url, run_dir)
+                rc = run_orchestrator(repo_url, run_dir, self.q)
                 self.q.put(("DONE", rc, run_dir))
             except Exception:
                 self.q.put(("ERR", -1, traceback.format_exc()))
@@ -570,8 +831,10 @@ class IceCrawlerUI(tk.Tk):
         try:
             while True:
                 tag, rc, payload = self.q.get_nowait()
+                if tag == "LOG":
+                    self._append_run_console(payload)
+                    continue
                 self.running = False
-                self.submit_btn.set_enabled(True)
                 if tag == "ERR":
                     messagebox.showerror("ICE-CRAWLER", f"Run error:\n\n{payload}")
                 elif rc != 0:
