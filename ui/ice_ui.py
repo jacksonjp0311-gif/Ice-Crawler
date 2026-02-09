@@ -243,10 +243,16 @@ class IceCrawlerUI(tk.Tk):
         phase_block = tk.Frame(shell, bg=BG)
         phase_block.pack(fill="x", padx=20, pady=(4, 6))
 
+        ladder_column = tk.Frame(phase_block, bg=BG)
+        ladder_column.pack(side="left", anchor="n")
+
+        status_column = tk.Frame(phase_block, bg=BG)
+        status_column.pack(side="left", anchor="n", padx=(24, 0))
+
         self.phase_reveals = {}
         self.reveal_started = {p: False for p in PHASES}
         for p in PHASES:
-            row = tk.Frame(phase_block, bg=BG)
+            row = tk.Frame(ladder_column, bg=BG)
             row.pack(anchor="w", pady=2)
             dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 24, "bold"))
             dot.pack(side="left")
@@ -260,6 +266,47 @@ class IceCrawlerUI(tk.Tk):
             self.phase_labels[p] = lbl
             self.phase_checks[p] = check
             self.phase_reveals[p] = reveal
+
+        self.agent_status_row = tk.Frame(status_column, bg=BG)
+        self.agent_status_row.pack(anchor="w", pady=(2, 8))
+        self.agent_status_row.pack_forget()
+
+        self.agent_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
+        self.agent_label = tk.Label(
+            self.agent_frame,
+            text="AGENTS",
+            fg=BLUE2,
+            bg=BG,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.agent_label.pack(padx=12, pady=6)
+        self.agent_frame.pack(side="left")
+
+        self.agent_state_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
+        self.agent_state_label = tk.Label(
+            self.agent_state_frame,
+            text="AGENTS: NOT RUN",
+            fg=BLUE2,
+            bg=BG,
+            font=("Segoe UI", 12, "bold"),
+        )
+        self.agent_state_label.pack(padx=12, pady=6)
+        self.agent_state_frame.pack(side="left", padx=(10, 0))
+        self.agent_visible = False
+        self.agent_state = None
+
+        self.completion_frame = tk.Frame(status_column, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
+        self.completion_label = tk.Label(
+            self.completion_frame,
+            text="handoff complete",
+            fg=ORANGE,
+            bg=BG,
+            font=("Segoe UI", 13, "bold"),
+        )
+        self.completion_label.pack(padx=12, pady=6)
+        self.completion_frame.pack(anchor="w", pady=(0, 8))
+        self.completion_frame.pack_forget()
+        self.completion_visible = False
 
         self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
         self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
@@ -282,26 +329,27 @@ class IceCrawlerUI(tk.Tk):
             font=("Consolas", 12),
             wraplength=900,
             justify="left",
+            anchor="w",
         )
         self.artifact_link.pack(anchor="w", pady=(2, 8))
         self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
+        self.agent_residue_label = tk.Label(
+            output_panel,
+            text="",
+            fg=BLUE2,
+            bg=BG,
+            font=("Consolas", 11, "bold"),
+            justify="left",
+            anchor="w",
+        )
+        self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+        self.agent_residue_label.pack_forget()
+        self.agent_residue_state = None
 
         timeline_frame = tk.Frame(lower, bg=BG)
         timeline_frame.pack(anchor="w", pady=(4, 0))
         self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
 
-        self.completion_frame = tk.Frame(lower, bg=BG, highlightbackground=ORANGE, highlightthickness=2)
-        self.completion_label = tk.Label(
-            self.completion_frame,
-            text="handoff complete",
-            fg=ORANGE,
-            bg=BG,
-            font=("Segoe UI", 13, "bold"),
-        )
-        self.completion_label.pack(padx=12, pady=6)
-        self.completion_frame.pack(anchor="w", pady=(8, 0))
-        self.completion_frame.pack_forget()
-        self.completion_visible = False
         self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
         self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
 
@@ -343,6 +391,9 @@ class IceCrawlerUI(tk.Tk):
         if hasattr(self, "artifact_link"):
             width = max(getattr(event, "width", self.winfo_width()), 700)
             self.artifact_link.configure(wraplength=max(520, width - 240))
+        if hasattr(self, "agent_residue_label"):
+            width = max(getattr(event, "width", self.winfo_width()), 700)
+            self.agent_residue_label.configure(wraplength=max(520, width - 240))
 
     def _paint_background(self):
         c = self.bg_canvas
@@ -494,6 +545,45 @@ class IceCrawlerUI(tk.Tk):
                 self.completion_frame.pack_forget()
                 self.completion_visible = False
 
+        agentic_dir = os.path.join(self.run_path, "agentic")
+        marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
+        marker_fail = os.path.join(agentic_dir, "AGENTS_FAIL.json")
+        marker_active = os.path.join(agentic_dir, "AGENTS_ACTIVE.json")
+        agent_state = None
+        if os.path.exists(marker_fail):
+            agent_state = "fail"
+        elif os.path.exists(marker_ok):
+            agent_state = "ok"
+        elif os.path.exists(marker_active):
+            agent_state = "active"
+
+        if agent_state and (not self.agent_visible):
+            self.agent_status_row.pack(anchor="w", pady=(2, 8))
+            self.agent_visible = True
+        elif (not agent_state) and self.agent_visible:
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+
+        if agent_state != self.agent_state:
+            self.agent_state = agent_state
+            if agent_state == "ok":
+                self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "fail":
+                self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
+                self.agent_state_frame.configure(highlightbackground=ORANGE2)
+                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
+                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
+            elif agent_state == "active":
+                self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
+                self.agent_state_frame.configure(highlightbackground=BLUE2)
+                self.agent_residue_label.pack_forget()
+            else:
+                self.agent_residue_label.pack_forget()
+
     def _reset_phase_ladder(self):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
@@ -508,6 +598,15 @@ class IceCrawlerUI(tk.Tk):
         if hasattr(self, "completion_frame"):
             self.completion_frame.pack_forget()
             self.completion_visible = False
+        if hasattr(self, "agent_frame"):
+            self.agent_status_row.pack_forget()
+            self.agent_visible = False
+            self.agent_state = None
+            self.agent_state_label.configure(text="AGENTS: NOT RUN", fg=BLUE2)
+            self.agent_state_frame.configure(highlightbackground=BLUE2)
+        if hasattr(self, "agent_residue_label"):
+            self.agent_residue_label.pack_forget()
+            self.agent_residue_state = None
         self._draw_progress(8)
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
