@@ -215,3 +215,5 @@ engine/_quarantine/**
 # Local chat exports (never tracked)
 __CHATGPT_EXPORT__/
 
+
+ui/latest_run_path.txt
