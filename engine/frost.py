@@ -1,10 +1,23 @@
-﻿import subprocess, datetime, json
+﻿import subprocess, datetime, json, sys
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 def _run(cmd):
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    creationflags = 0
+    startupinfo = None
+    if sys.platform.startswith("win"):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    p = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        creationflags=creationflags,
+        startupinfo=startupinfo,
+    )
     return p.returncode, p.stdout
 
 def frost_telemetry(repo_url: str):

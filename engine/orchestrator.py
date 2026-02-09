@@ -11,7 +11,21 @@ def ensure_dir(p):
     os.makedirs(p, exist_ok=True)
 
 def run(cmd, cwd=None):
-    p=subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    creationflags = 0
+    startupinfo = None
+    if sys.platform.startswith("win"):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    p=subprocess.run(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        creationflags=creationflags,
+        startupinfo=startupinfo,
+    )
     return p.returncode, p.stdout
 
 def _on_rm_error(func, path, exc_info):

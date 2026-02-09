@@ -1,11 +1,21 @@
-import os, json, subprocess
+import os, json, subprocess, sys
 
 ALLOW_EXT = (".py", ".ps1", ".c", ".h", ".md", ".txt", ".json", ".yml", ".yaml")
 
 
 def glacier_clone(repo_url: str, temp_dir: str):
     # EPHEMERAL MATERIALIZATION (shallow)
-    subprocess.check_call(["git", "clone", "--depth=1", "--single-branch", repo_url, temp_dir])
+    creationflags = 0
+    startupinfo = None
+    if sys.platform.startswith("win"):
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    subprocess.check_call(
+        ["git", "clone", "--depth=1", "--single-branch", repo_url, temp_dir],
+        creationflags=creationflags,
+        startupinfo=startupinfo,
+    )
 
 
 def _triadic_bucket(path: str) -> str:
