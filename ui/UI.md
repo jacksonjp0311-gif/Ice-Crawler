@@ -15,6 +15,10 @@ All visual state is derived from those events and files.
 After a stage verifies, a short delay reveals state-language next to the
 stage name. This is UI-only and does not alter engine flow.
 
+## Ladder update timing
+
+The ladder and timeline update once the run completes, keeping the ladder state stable during execution.
+
 ## Handoff badge
 
 An orange handoff badge appears after `RUN_COMPLETE` and links to the `ai_handoff` folder when present.
@@ -37,3 +41,7 @@ A blue "RUN THREAD" panel appears to the right of the output residue section. It
 ## Command trace box
 
 A blue "CMD TRACE" panel appears above the run thread. It tails `run_cmds.jsonl` to show the commands executed by engines/agent hooks.
+
+## Run console
+
+The "RUN CONSOLE" panel sits under the submit button and streams live stdout/stderr from the orchestrator in a scrollable, fixed-height box. No external terminals are spawned.
