@@ -31,6 +31,16 @@ PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
 EVENT_FILE = "ui_events.jsonl"
 SUBMIT_REQUEST = "submit_request.json"
 INBOX_DIR = "inbox"
+ARTIFACT_FILES = [
+    "ui_events.jsonl",
+    "frost_summary.json",
+    "glacier_ref.json",
+    "tree_snapshot.txt",
+    "artifact_manifest.json",
+    "artifact_hashes.json",
+    "crystal_report.md",
+    "residue_truth.json",
+]
 
 BG = "#050b14"
 PANEL = "#071427"
@@ -127,6 +137,21 @@ def _status_text_for_path(path: str, max_chars: int = 74) -> str:
     if len(p) <= max_chars:
         return f"Run: {p}"
     return f"Run: ...{p[-(max_chars-8):]}"
+
+
+def _artifact_summary(run_path: str, ai_path: str) -> str:
+    lines = ["All that remains..."]
+    if not run_path:
+        return "\n".join(lines)
+    for name in ARTIFACT_FILES:
+        exists = os.path.exists(os.path.join(run_path, name))
+        suffix = "" if exists else " (missing)"
+        lines.append(f"- {name}{suffix}")
+    if ai_path:
+        lines.append(f"- ai_handoff/ ({ai_path})")
+    else:
+        lines.append("- ai_handoff/ (missing)")
+    return "\n".join(lines)
 
 
 def run_orchestrator(repo_url: str, out_run_dir: str, log_queue: queue.Queue):
@@ -683,10 +708,7 @@ class IceCrawlerUI(tk.Tk):
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
         self.status_line.configure(text=self._status_text_for_run(self.run_path))
-        if "RUN_COMPLETE" in events and ai_path:
-            self.artifact_link.configure(text=f"All that remains...\n{ai_path}")
-        else:
-            self.artifact_link.configure(text="All that remains...")
+        self.artifact_link.configure(text=_artifact_summary(self.run_path, ai_path))
 
         if ("RUN_COMPLETE" in events) and (not self.running):
             if not self.handoff_visible:

@@ -30,7 +30,7 @@ The blue **AGENTS** status row appears only when agentic hooks
 write success artifacts (`agentic/AGENTS_OK.json`) or failure artifacts (`agentic/AGENTS_FAIL.json`).
 Both banners are rendered alongside the ladder to avoid layout shifts in the output panel.
 
-The output residue panel mirrors the agentic status once per transition:
+The output residue panel mirrors the agentic status once per transition and lists the typical run artifacts when present:
 
 - `[ Agents OK — agentic/AGENTS_OK.json ]`
 - `[ Agents FAILED — agentic/AGENTS_FAIL.json ]`
