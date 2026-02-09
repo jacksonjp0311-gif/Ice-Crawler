@@ -383,6 +383,9 @@ class IceCrawlerUI(tk.Tk):
             self._placeholder_active = True
 
     def _animate(self):
+        if self.run_complete and (not self.running):
+            self.after(400, self._animate)
+            return
         if self.running or self.has_activity:
             glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
             for p in PHASES:
