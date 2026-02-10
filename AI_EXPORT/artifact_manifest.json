@@ -1,0 +1,252 @@
+[
+  {
+    "path": "AGENTS.md",
+    "artifact_rel": "AGENTS.md",
+    "sha256": "a8ef79a7297cc11739d9e55d633c3dba1c1898dd9f0db23898d8fc86f715de1f"
+  },
+  {
+    "path": "PUBLIC_EXE_READY.txt",
+    "artifact_rel": "PUBLIC_EXE_READY.txt",
+    "sha256": "db61b93995eb25517a342ca7d5bd75de73fdf86cbb6585c068647283aed5f0af"
+  },
+  {
+    "path": "PUBLIC_RELEASE_READY.txt",
+    "artifact_rel": "PUBLIC_RELEASE_READY.txt",
+    "sha256": "87b132a52df0ba640e4c97ec16ad1a007be055ff3ca96e706d33bb0d318ea7fb"
+  },
+  {
+    "path": "README.md",
+    "artifact_rel": "README.md",
+    "sha256": "53ee5d6b4f39941e8ca0a266b6c8fad3389473abae813963bf5f63c96ef151ed"
+  },
+  {
+    "path": "RUNTIME_NOTE.txt",
+    "artifact_rel": "RUNTIME_NOTE.txt",
+    "sha256": "d2af6f75f2032e54a7245e21047f18ba012161815a89255a6490743ad07fad71"
+  },
+  {
+    "path": "agentics/README.md",
+    "artifact_rel": "agentics/README.md",
+    "sha256": "9728f3a84c88ffd77d73768ce9ad91ae78c1cee47aeb0fd1ba1a83c4344bd9ba"
+  },
+  {
+    "path": "agentics/__init__.py",
+    "artifact_rel": "agentics/__init__.py",
+    "sha256": "e4ab280a4d61090a4268c0c743082c84665e2cebfb65fc8c05d8e19a35a2b89c"
+  },
+  {
+    "path": "agentics/agent_manifest.py",
+    "artifact_rel": "agentics/agent_manifest.py",
+    "sha256": "98da5965f04f53b8996691a03aad5820fd4ec7eff8f4c7f111d7ced2ddb2e31f"
+  },
+  {
+    "path": "agentics/frost_fractal.py",
+    "artifact_rel": "agentics/frost_fractal.py",
+    "sha256": "61b5ec4a9ce4a629b800c89864e7d8e9573158dc346284b30f6cdd7b5f6f5532"
+  },
+  {
+    "path": "agentics/hook.py",
+    "artifact_rel": "agentics/hook.py",
+    "sha256": "c527b3780a6d59dabccd728e6bf71f9c91cea0838b3462be6e72e94030f86db3"
+  },
+  {
+    "path": "agentics/phi_partition.py",
+    "artifact_rel": "agentics/phi_partition.py",
+    "sha256": "424730ca113202e3f24bd68bd890acbe997ea2089780031c33d7e1691a7be7a9"
+  },
+  {
+    "path": "agentics/pipeline.py",
+    "artifact_rel": "agentics/pipeline.py",
+    "sha256": "76984853ba02dde8f93a254dafc102415339a195c0e4fdf622ab8bd841f90eab"
+  },
+  {
+    "path": "artifact/bundles/artifact_manifest.json",
+    "artifact_rel": "artifact/bundles/artifact_manifest.json",
+    "sha256": "4ba2dac9a032433f0764cb3775e49e524d7bdf8c9ac6528ff1a3e6440ec9d1d3"
+  },
+  {
+    "path": "docs/CODEX_777_TRIADIC_BOUNDARY_EXCESS_v2_0.md",
+    "artifact_rel": "docs/CODEX_777_TRIADIC_BOUNDARY_EXCESS_v2_0.md",
+    "sha256": "a2ae929a86bf8716a4a77a1a7135139ba93ebbe7aae9186af1e3f4ce5c60988a"
+  },
+  {
+    "path": "docs/CODEX_PHI_EXTREMAL_CONSTRAINT_AGENTICS_v1_0.md",
+    "artifact_rel": "docs/CODEX_PHI_EXTREMAL_CONSTRAINT_AGENTICS_v1_0.md",
+    "sha256": "6ec4976f9245516edaded8beb104cf0a8ae7ff11fce747e2defcd05e9efc9f7d"
+  },
+  {
+    "path": "docs/ICE_CRAWLER_ARCHITECTURE_v1_1.md",
+    "artifact_rel": "docs/ICE_CRAWLER_ARCHITECTURE_v1_1.md",
+    "sha256": "12b599aa559e6bfe26430050b65bbab531d9b6eaae4f901cdf456454ef337d13"
+  },
+  {
+    "path": "engine/__init__.py",
+    "artifact_rel": "engine/__init__.py",
+    "sha256": "b42f2099187886def637d6aa840022266e05cb6c987a9394e708e23cd505eb46"
+  },
+  {
+    "path": "engine/_quarantine/_deprecated/ice_crawler_engine_v1.py",
+    "artifact_rel": "engine/_quarantine/_deprecated/ice_crawler_engine_v1.py",
+    "sha256": "d6eda5f142fc2e992de65fdb803f8d924a6357023f1934571d527c93c1ced585"
+  },
+  {
+    "path": "engine/_quarantine/active/engine_active.py",
+    "artifact_rel": "engine/_quarantine/active/engine_active.py",
+    "sha256": "f36f61ecd4a0a79da40a5bc0a4f58fd8d2ac8492b0ad3401bbee2068c9064c7e"
+  },
+  {
+    "path": "engine/_quarantine/crystal/crystal_engine.py",
+    "artifact_rel": "engine/_quarantine/crystal/crystal_engine.py",
+    "sha256": "2916242cc002b2573554054c91892ea452e6dd24bd6b57d6a39842bf348ecee5"
+  },
+  {
+    "path": "engine/_quarantine/frost/frost_engine.py",
+    "artifact_rel": "engine/_quarantine/frost/frost_engine.py",
+    "sha256": "2ab46bcdcd230afc3fc2e6ea562a0801d9c026252b83ace8b4dc831f9c2bfb59"
+  },
+  {
+    "path": "engine/_quarantine/glacier/glacier_engine.py",
+    "artifact_rel": "engine/_quarantine/glacier/glacier_engine.py",
+    "sha256": "56e777cd9a65815c04342676c8259f0ef1013ddfdf795f05c11462ed0a9f05a6"
+  },
+  {
+    "path": "engine/_quarantine/roles/crystal_engine.py",
+    "artifact_rel": "engine/_quarantine/roles/crystal_engine.py",
+    "sha256": "628b3b6f5049ee9ac116c6d2860fc8ea9deb78ba24873afa05cd7cfd2fe82cee"
+  },
+  {
+    "path": "engine/_quarantine/roles/frost_engine.py",
+    "artifact_rel": "engine/_quarantine/roles/frost_engine.py",
+    "sha256": "cba9ce476b32bb77fca26faf501a35dd09335ba0e9c78074797e32b64e6f0afd"
+  },
+  {
+    "path": "engine/_quarantine/roles/glacier_engine.py",
+    "artifact_rel": "engine/_quarantine/roles/glacier_engine.py",
+    "sha256": "4db7e34e98ca22ba460594162006d2f4ea505808148573ba58b75c1cb3a04455"
+  },
+  {
+    "path": "engine/_quarantine/v3_0/ice_crawler_engine_v3_0.py",
+    "artifact_rel": "engine/_quarantine/v3_0/ice_crawler_engine_v3_0.py",
+    "sha256": "164dfc094380773c41bba373eb874f17bd1a672ce3ad239abe3e562f3fa2e5d4"
+  },
+  {
+    "path": "engine/_quarantine/v3_1/ice_crawler_engine_v3_1.py",
+    "artifact_rel": "engine/_quarantine/v3_1/ice_crawler_engine_v3_1.py",
+    "sha256": "de594d1dcfae329e2db81bc6cefb72aa713552bb8b979ea617575a18d1105621"
+  },
+  {
+    "path": "engine/crystal.py",
+    "artifact_rel": "engine/crystal.py",
+    "sha256": "536fd0588bf2c82e2a86e2f808f6e07f5989b116dcb434134b103a1ec8ad27b2"
+  },
+  {
+    "path": "engine/frost.py",
+    "artifact_rel": "engine/frost.py",
+    "sha256": "dce8d78971860d20e36f71f12fe41f8c54ef30de2d0311d3c57b20f29651c2f9"
+  },
+  {
+    "path": "engine/glacier.py",
+    "artifact_rel": "engine/glacier.py",
+    "sha256": "c0a14b8ba9248a6c53416ec30807faf3b27e140988c56fbd6b2644cdd02c612c"
+  },
+  {
+    "path": "engine/orchestrator.py",
+    "artifact_rel": "engine/orchestrator.py",
+    "sha256": "c7dae16dc388e450ed8a6acc4c8660b710961c8aa82475362a1557dd65c79fe2"
+  },
+  {
+    "path": "icecrawler.py",
+    "artifact_rel": "icecrawler.py",
+    "sha256": "8b995071798c3b0a0f01819d7462ed4474191460123fb8da570b83c284bede7b"
+  },
+  {
+    "path": "launch_ice_crawler.ps1",
+    "artifact_rel": "launch_ice_crawler.ps1",
+    "sha256": "153f837bf55261b2af38364f9c88a05d248034f0516f8a12d64fcf5795d4ec47"
+  },
+  {
+    "path": "launch_ice_crawler.py",
+    "artifact_rel": "launch_ice_crawler.py",
+    "sha256": "237e45ae18467dba575d80e3235dcf7c08da0c6858d0a5386adeacd286147011"
+  },
+  {
+    "path": "scripts/build/build_windows_exe.ps1",
+    "artifact_rel": "scripts/build/build_windows_exe.ps1",
+    "sha256": "b33537ff3d67a5436e2ea0ffb7977e33e0bd8a8d17355673f3cfd8a01aca5631"
+  },
+  {
+    "path": "scripts/launchers/icecrawler.ps1",
+    "artifact_rel": "scripts/launchers/icecrawler.ps1",
+    "sha256": "41ca342e2f0462abe1257a940cde9ad89384a1b9d69c5f2bb8337cd555b40761"
+  },
+  {
+    "path": "ui/README.md",
+    "artifact_rel": "ui/README.md",
+    "sha256": "db71a7018b71068624f9d5554ff33db9f8052e551287804c719ccfa5320af2f4"
+  },
+  {
+    "path": "ui/UI.md",
+    "artifact_rel": "ui/UI.md",
+    "sha256": "f1af5d31cc47c6542b27f3824dca6ef443ebfb43933a400b5806f940aad94896"
+  },
+  {
+    "path": "ui/_quarantine/RELEASE_SEAL.txt",
+    "artifact_rel": "ui/_quarantine/RELEASE_SEAL.txt",
+    "sha256": "6643a676563e4d8889da54886daa97b8c536589d6570600ff5bb290d052b502b"
+  },
+  {
+    "path": "ui/_quarantine/engine_active.json",
+    "artifact_rel": "ui/_quarantine/engine_active.json",
+    "sha256": "731872bba8404ddb4ee7c8c126e211760286b96e48d1db47cc0a76e28dda6bde"
+  },
+  {
+    "path": "ui/_quarantine/latest_ai_handoff_path.txt",
+    "artifact_rel": "ui/_quarantine/latest_ai_handoff_path.txt",
+    "sha256": "106f991128d2234c42f8dcdb3fc225c31090303260b6ae2f8cb4ed5db5374838"
+  },
+  {
+    "path": "ui/_quarantine/run_ui.ps1",
+    "artifact_rel": "ui/_quarantine/run_ui.ps1",
+    "sha256": "a9a6ccabc16cce0502f17331b4a89d0885cf0af742ce1a1e00180b6df1550d3b"
+  },
+  {
+    "path": "ui/_quarantine/ui_ladder.py",
+    "artifact_rel": "ui/_quarantine/ui_ladder.py",
+    "sha256": "e9f61149a54b7f73af3f9665baeb50b4e66c044cf7cdccc32d2b2ee26b65812a"
+  },
+  {
+    "path": "ui/animations/__init__.py",
+    "artifact_rel": "ui/animations/__init__.py",
+    "sha256": "03b505e0d825931864f5b74aef5ef926e0648605d53c336665d981d640c75669"
+  },
+  {
+    "path": "ui/animations/sequencing/__init__.py",
+    "artifact_rel": "ui/animations/sequencing/__init__.py",
+    "sha256": "8528b22c1653179780aadf9b3fde27207ca2b8259d31f6e2aea04c2e524e8652"
+  },
+  {
+    "path": "ui/assets/ASSETS_LOCK.txt",
+    "artifact_rel": "ui/assets/ASSETS_LOCK.txt",
+    "sha256": "bf552eb92733a36d06209a8b9fe4c3c554a71b7c35aabd9dc8ccf474d1c7799c"
+  },
+  {
+    "path": "ui/assets/DROP_GLOW_HERE.txt",
+    "artifact_rel": "ui/assets/DROP_GLOW_HERE.txt",
+    "sha256": "7287288faa9490524c7443b97c1426f70d8a37122f55bf56292bdee2d8b0f6e7"
+  },
+  {
+    "path": "ui/assets/DROP_SNOWFLAKE_HERE.txt",
+    "artifact_rel": "ui/assets/DROP_SNOWFLAKE_HERE.txt",
+    "sha256": "38892818706e1ff1ba592765002bce2e073c9089ccc254acce0301d39fc48cdc"
+  },
+  {
+    "path": "ui/engine_registry.json",
+    "artifact_rel": "ui/engine_registry.json",
+    "sha256": "5b4bb19cc51e5df31212e150c11ce89becaca7825fad554c3f673126f99a77c9"
+  },
+  {
+    "path": "ui/latest_run_path.txt",
+    "artifact_rel": "ui/latest_run_path.txt",
+    "sha256": "88105b08c6fcbc803654e4703ca8b83fb73353b02e36ec07ae76284a59b4d519"
+  }
+]

@@ -1,0 +1,18 @@
+{"ts": "2026-02-10T14:59:33+00:00", "event": "RUN_BEGIN", "payload": {"repo": "https://github.com/jacksonjp0311-gif/Ice-Crawler"}}
+{"ts": "2026-02-10T14:59:33+00:00", "event": "FROST_PENDING"}
+{"ts": "2026-02-10T14:59:34+00:00", "event": "FROST_VERIFIED", "payload": {"head": "3aadee57b2138f6e97f3d183ac478273cb7db8d8"}}
+{"ts": "2026-02-10T14:59:34+00:00", "event": "UI_EVENT:FROST_PENDING_TO_VERIFIED"}
+{"ts": "2026-02-10T14:59:34+00:00", "event": "AGENTIC_FROST_VERIFIED"}
+{"ts": "2026-02-10T14:59:34+00:00", "event": "GLACIER_PENDING"}
+{"ts": "2026-02-10T14:59:34+00:00", "event": "UI_EVENT:GLACIER_PENDING"}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "GLACIER_VERIFIED", "payload": {"picked": 50}}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "UI_EVENT:GLACIER_VERIFIED"}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "CRYSTAL_PENDING"}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "UI_EVENT:CRYSTAL_PENDING"}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "CRYSTAL_VERIFIED", "payload": {"count": 50}}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "UI_EVENT:CRYSTAL_VERIFIED"}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "AI_HANDOFF_READY", "payload": {"ai_handoff": "C:\\Users\\jacks\\OneDrive\\Desktop\\Ice-Crawler\\state\\runs\\run_20260210_095933\\ai_handoff", "root_seal": "3ba63d0bf9de5cba6f75b613f81ab4e6846fe4d05a7f89855cbe2f537a494f57"}}
+{"ts": "2026-02-10T14:59:35+00:00", "event": "AGENTIC_CRYSTAL_VERIFIED"}
+{"ts": "2026-02-10T14:59:36+00:00", "event": "RESIDUE_EMPTY_LOCK"}
+{"ts": "2026-02-10T14:59:36+00:00", "event": "UI_EVENT:RESIDUE_EMPTY_LOCK"}
+{"ts": "2026-02-10T14:59:36+00:00", "event": "RUN_COMPLETE"}

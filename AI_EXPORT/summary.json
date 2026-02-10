@@ -1,0 +1,13 @@
+{
+  "ts": "2026-02-10T14:59:35+00:00",
+  "repo_root": "https://github.com/jacksonjp0311-gif/Ice-Crawler",
+  "crystal_files": 0,
+  "filetype_counts": {},
+  "largest_files": [],
+  "import_heavy": [],
+  "notes": [
+    "This synthesis is offline + deterministic.",
+    "Use it to debug why Crystal is not emitting artifacts or why selection is too shallow.",
+    "If you want deeper synthesis, increase max_files/max_total_kb cautiously."
+  ]
+}
