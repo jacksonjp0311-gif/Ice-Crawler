@@ -18,6 +18,20 @@ FONT_LOGO=("Segoe UI", 60, "bold")
 FONT_BOX=("Consolas", 16)
 
 # ─────────────────────────────────────────────
+# IDE CHROME CONSTANTS
+# ─────────────────────────────────────────────
+SIDEBAR_BG  = "#050b14"
+FOOTER_BG   = "#040810"
+TERMINAL_BG = "#050b14"
+SASH_COLOR  = "#0a1929"
+TAB_BG      = "#0b1a2e"
+TAB_FG      = "#6fb9c9"
+TAB_ACTIVE_BG = "#071427"
+TAB_ACTIVE_FG = "#4fe3ff"
+NOTEBOOK_BG = "#050b14"
+SEPARATOR    = "#0d3a5a"
+
+# ─────────────────────────────────────────────
 # ASSET ROOT (SKIN ONLY)
 # ─────────────────────────────────────────────
 HERE = os.path.dirname(__file__)

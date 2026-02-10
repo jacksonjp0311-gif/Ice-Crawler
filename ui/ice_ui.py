@@ -1,5 +1,6 @@
 # ui/ice_ui.py
 # ❄ ICE-CRAWLER UI — Event-Truth + Photo-Lock Control Surface
+# IDE-style layout with collapsible sidebars, terminal, and footer
 
 import math
 import os
@@ -25,6 +26,12 @@ from ui.animations import (
     attach_snowflake,
 )
 from ui.hooks import CommandStreamHook
+from ui.design.ide_style import apply_ide_style
+from ui.panels.left_sidebar import LeftSidebar
+from ui.panels.main_content import MainContent
+from ui.panels.right_sidebar import RightSidebar
+from ui.panels.terminal_panel import TerminalPanel
+from ui.panels.footer import Footer
 
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
@@ -157,19 +164,30 @@ def run_orchestrator(repo_url: str, out_run_dir: str, stream_hook: CommandStream
     return rc
 
 
+# ─────────────────────────────────────────────────────────────
+# Collapse/expand defaults
+# ─────────────────────────────────────────────────────────────
+LEFT_WIDTH = 260
+RIGHT_WIDTH = 320
+TERMINAL_HEIGHT = 180
+TOGGLE_SIZE = 24
+
+
 class IceCrawlerUI(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("ICE-CRAWLER ❄")
-        self.geometry("1160x760")
+        self.title("ICE-CRAWLER \u2744")
+        self.geometry("1280x820")
         self.minsize(1000, 700)
         self.configure(bg=BG)
+
+        # Apply IDE ttk styles
+        apply_ide_style(self)
 
         self._bg_image = None
         self._phase_dots = {}
         self.phase_labels = {}
         self.phase_checks = {}
-        self._bg_image = None
         self._status_after = None
         self.q = queue.Queue()
         self.running = False
@@ -179,253 +197,175 @@ class IceCrawlerUI(tk.Tk):
         self.last_events = ""
         self.run_path = read_latest_run_path()
         self.stream_hook = None
+        self.reveal_started = {p: False for p in PHASES}
 
-        self._phase_dots = {}
-        self._build()
+        # Collapse state
+        self._left_collapsed = False
+        self._right_collapsed = False
+        self._terminal_collapsed = False
+        self._left_saved_width = LEFT_WIDTH
+        self._right_saved_width = RIGHT_WIDTH
+        self._terminal_saved_height = TERMINAL_HEIGHT
+
+        self._build_layout()
+        self._wire_panels()
 
         self.after(200, self._animate)
         self.after(300, self._pump)
         self._refresh_from_fossils(force=True)
 
-    def _build(self):
+    # ─────────────────────────────────────────────────────────
+    # Layout construction
+    # ─────────────────────────────────────────────────────────
+    def _build_layout(self):
+        # Background canvas
         self.bg_canvas = tk.Canvas(self, bg=BG, highlightthickness=0, bd=0)
         self.bg_canvas.place(x=0, y=0, relwidth=1, relheight=1)
         self._paint_background()
         self.bind("<Configure>", self._on_resize)
 
+        # Shell overlay
         shell = tk.Frame(self, bg=BG)
         shell.place(x=0, y=0, relwidth=1, relheight=1)
 
-        header = tk.Frame(shell, bg=BG)
-        header.pack(fill="x", padx=20, pady=(16, 4))
-        title_row = tk.Frame(header, bg=BG)
-        title_row.pack(fill="x")
-        tk.Label(title_row, text="ICE-CRAWLER", fg=BLUE2, bg=BG, font=("Segoe UI", 30, "bold")).pack(side="left")
-        self.snowflake_canvas = attach_snowflake(title_row, self)
-        self.snowflake_canvas.pack(side="left", padx=(8, 0))
-        self.status_indicator_label = tk.Label(
-            title_row,
-            text="STATUS: IDLE",
-            fg=BLUE2,
-            bg=BG,
-            font=("Consolas", 12, "bold"),
+        # Footer (pack bottom first)
+        self.footer = Footer(shell)
+        self.footer.pack(side="bottom", fill="x")
+
+        # Vertical pane: upper area + terminal
+        self.vpane = tk.PanedWindow(
+            shell, orient="vertical", bg="#0a1929", sashwidth=4,
+            sashrelief="flat", bd=0,
         )
-        self.status_indicator_label.pack(side="right")
-        tk.Label(
-            header,
-            text="Event-Truth Ladder • Photo-Lock UI • Fossil Reader",
-            fg=BLUE,
-            bg=BG,
-            font=("Segoe UI", 11, "bold"),
-        ).pack(anchor="w")
-        self.status_indicator = StatusIndicator(self.status_indicator_label)
+        self.vpane.pack(fill="both", expand=True)
 
-        top = tk.Frame(shell, bg=BG)
-        top.pack(fill="x", padx=20, pady=(8, 10))
+        # Upper frame (holds horizontal pane)
+        self.upper_frame = tk.Frame(self.vpane, bg=BG)
+        self.vpane.add(self.upper_frame, stretch="always")
 
-        self.url_entry = tk.Entry(top, bg=PANEL, fg=DIM, insertbackground=BLUE2, relief="flat", font=("Consolas", 14))
-        self.url_entry.pack(side="left", fill="x", expand=True, ipady=7)
-        self.url_entry.insert(0, PLACEHOLDER)
-        self._placeholder_active = True
-        self.url_entry.bind("<FocusIn>", self._on_url_focus_in)
-        self.url_entry.bind("<FocusOut>", self._on_url_focus_out)
+        # Terminal
+        self.terminal_panel = TerminalPanel(self.vpane)
+        self.vpane.add(self.terminal_panel, height=TERMINAL_HEIGHT, stretch="never")
+        self.terminal_panel.toggle_btn.bind("<Button-1>", lambda e: self._toggle_terminal())
 
-        action_panel = tk.Frame(top, bg=BG)
-        action_panel.pack(side="left", padx=(14, 0))
-
-        button_row = tk.Frame(action_panel, bg=BG)
-        button_row.pack(anchor="w")
-        self.submit_btn = RitualTriangleButton(button_row, command=self.on_submit, w=104, h=86)
-        self.submit_btn.pack(side="left")
-
-        self.submit_lbl = tk.Label(
-            button_row,
-            text="PRESS TO SUBMIT\nTO ICE CRAWLER",
-            fg=ORANGE,
-            bg=BG,
-            justify="left",
-            font=("Segoe UI", 11, "bold"),
+        # Horizontal pane inside upper frame
+        self.hpane = tk.PanedWindow(
+            self.upper_frame, orient="horizontal", bg="#0a1929",
+            sashwidth=4, sashrelief="flat", bd=0,
         )
-        self.submit_lbl.pack(side="left", padx=(8, 0))
+        self.hpane.pack(fill="both", expand=True)
 
-        self._submit_line_1 = tk.Frame(action_panel, bg=ORANGE, height=1, width=240)
-        self._submit_line_1.pack(anchor="w", pady=(5, 0))
-        self._submit_line_2 = tk.Frame(action_panel, bg=ORANGE, height=1, width=170)
-        self._submit_line_2.pack(anchor="w", pady=(3, 0))
+        # Left sidebar wrapper (toggle + sidebar)
+        self.left_wrapper = tk.Frame(self.hpane, bg=BG)
+        self.hpane.add(self.left_wrapper, width=LEFT_WIDTH, stretch="never")
 
-        phase_block = tk.Frame(shell, bg=BG)
-        phase_block.pack(fill="x", padx=20, pady=(4, 6))
-
-        ladder_column = tk.Frame(phase_block, bg=BG)
-        ladder_column.pack(side="left", anchor="n", pady=(28, 0))
-
-        status_column = tk.Frame(phase_block, bg=BG)
-        status_column.pack(side="left", anchor="n", padx=(24, 0))
-
-        self.phase_reveals = {}
-        self.reveal_started = {p: False for p in PHASES}
-        for p in PHASES:
-            row = tk.Frame(ladder_column, bg=BG)
-            row.pack(anchor="w", pady=2)
-            dot = tk.Label(row, text="○", fg=BLUE2, bg=BG, font=("Segoe UI", 24, "bold"))
-            dot.pack(side="left")
-            lbl = tk.Label(row, text=p, fg=BLUE2, bg=BG, font=("Segoe UI", 19, "bold"))
-            lbl.pack(side="left", padx=(8, 8))
-            check = tk.Label(row, text="", fg=BLUE2, bg=BG, font=("Segoe UI", 16, "bold"))
-            check.pack(side="left", padx=(0, 8))
-            reveal = tk.Label(row, text="", fg=ORANGE, bg=BG, font=("Segoe UI", 12, "italic"))
-            reveal.pack(side="left")
-            self._phase_dots[p] = dot
-            self.phase_labels[p] = lbl
-            self.phase_checks[p] = check
-            self.phase_reveals[p] = reveal
-
-        self.agent_status_row = tk.Frame(status_column, bg=BG)
-        self.agent_status_row.pack(anchor="w", pady=(2, 8))
-        self.agent_status_row.pack_forget()
-
-        self.agent_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
-        self.agent_label = tk.Label(
-            self.agent_frame,
-            text="AGENTS",
-            fg=BLUE2,
-            bg=BG,
-            font=("Segoe UI", 12, "bold"),
+        self._left_toggle = self._make_toggle(
+            self.left_wrapper, "\u00ab", side="right", command=self._toggle_left,
         )
-        self.agent_label.pack(padx=12, pady=6)
-        self.agent_frame.pack(side="left")
-
-        self.agent_state_frame = tk.Frame(self.agent_status_row, bg=BG, highlightbackground=BLUE2, highlightthickness=2)
-        self.agent_state_label = tk.Label(
-            self.agent_state_frame,
-            text="AGENTS: NOT RUN",
-            fg=BLUE2,
-            bg=BG,
-            font=("Segoe UI", 12, "bold"),
+        self.left_sidebar = LeftSidebar(
+            self.left_wrapper, handoff_command=self.open_handoff_folder,
         )
-        self.agent_state_label.pack(padx=12, pady=6)
-        self.agent_state_frame.pack(side="left", padx=(10, 0))
+        self.left_sidebar.pack(side="left", fill="both", expand=True)
+
+        # Main content (center)
+        self.main_content = MainContent(
+            self.hpane, root_window=self,
+            submit_command=self.on_submit,
+            artifact_command=self.open_artifact_folder,
+        )
+        self.hpane.add(self.main_content, stretch="always", minsize=400)
+
+        # Right sidebar wrapper (toggle + sidebar)
+        self.right_wrapper = tk.Frame(self.hpane, bg=BG)
+        self.hpane.add(self.right_wrapper, width=RIGHT_WIDTH, stretch="never")
+
+        self._right_toggle = self._make_toggle(
+            self.right_wrapper, "\u00bb", side="left", command=self._toggle_right,
+        )
+        self.right_sidebar = RightSidebar(self.right_wrapper)
+        self.right_sidebar.pack(side="right", fill="both", expand=True)
+
+        # Keyboard shortcuts
+        self.bind_all("<Control-b>", lambda e: self._toggle_left())
+        self.bind_all("<Control-j>", lambda e: self._toggle_terminal())
+        self.bind_all("<Control-Shift-B>", lambda e: self._toggle_right())
+
+        # Deferred sash positioning
+        self.after(100, self._set_initial_sashes)
+
+    def _make_toggle(self, parent, glyph, side, command):
+        """Create a small toggle button (chevron) for sidebar collapse."""
+        btn = tk.Canvas(
+            parent, width=TOGGLE_SIZE, height=TOGGLE_SIZE, bg="#0a1929",
+            highlightthickness=0, bd=0, cursor="hand2",
+        )
+        btn.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text=glyph,
+            fill=BLUE2, font=("Consolas", 11, "bold"), tags="glyph",
+        )
+        btn.pack(side=side, fill="y", padx=0)
+        btn.bind("<Button-1>", lambda e: command())
+        return btn
+
+    def _set_initial_sashes(self):
+        """Set sash positions after the window is mapped."""
+        try:
+            w = self.winfo_width()
+            h = self.upper_frame.winfo_height() + TERMINAL_HEIGHT
+            # Horizontal sashes
+            self.hpane.sash_place(0, LEFT_WIDTH, 0)
+            self.hpane.sash_place(1, w - RIGHT_WIDTH, 0)
+            # Vertical sash
+            total_h = self.vpane.winfo_height()
+            if total_h > TERMINAL_HEIGHT + 100:
+                self.vpane.sash_place(0, 0, total_h - TERMINAL_HEIGHT)
+        except Exception:
+            pass
+
+    # ─────────────────────────────────────────────────────────
+    # Compatibility bridge
+    # ─────────────────────────────────────────────────────────
+    def _wire_panels(self):
+        """Alias panel widget references so existing methods work unchanged."""
+        # Left sidebar
+        self._phase_dots = self.left_sidebar.phase_dots
+        self.phase_labels = self.left_sidebar.phase_labels
+        self.phase_checks = self.left_sidebar.phase_checks
+        self.phase_reveals = self.left_sidebar.phase_reveals
+        self.handoff_badge = self.left_sidebar.handoff_badge
+        self.agent_status_row = self.left_sidebar.agent_status_row
+        self.agent_frame = self.left_sidebar.agent_frame
+        self.agent_label = self.left_sidebar.agent_label
+        self.agent_state_frame = self.left_sidebar.agent_state_frame
+        self.agent_state_label = self.left_sidebar.agent_state_label
         self.agent_visible = False
         self.agent_state = None
-
-        self.handoff_badge = HandoffCompleteBadge(status_column, command=self.open_handoff_folder)
-        self.handoff_badge.pack(anchor="w", pady=(0, 8))
-        self.handoff_badge.pack_forget()
         self.handoff_visible = False
-
-        self.progress_canvas = tk.Canvas(shell, height=18, bg=BG, highlightthickness=0, bd=0)
-        self.progress_canvas.pack(fill="x", padx=20, pady=(4, 10))
-        self._draw_progress(0)
-
-        lower = tk.Frame(shell, bg=BG)
-        lower.pack(fill="x", padx=20, pady=(0, 2))
-        residue_row = tk.Frame(lower, bg=BG)
-        residue_row.pack(fill="x", anchor="w")
-        self.output_panel = tk.Frame(residue_row, bg=BG)
-        self.output_panel.pack(side="left", fill="both", expand=True, anchor="w")
-        tk.Label(self.output_panel, text="OUTPUT RESIDUE", fg=ORANGE, bg=BG, font=("Segoe UI", 14, "bold")).pack(
-            anchor="w"
-        )
-        tk.Frame(self.output_panel, bg=ORANGE, height=2, width=220).pack(anchor="w", pady=(2, 6))
-        self.artifact_link = tk.Label(
-            self.output_panel,
-            text="All that remains...",
-            fg=BLUE2,
-            bg=BG,
-            cursor="hand2",
-            font=("Consolas", 12),
-            wraplength=900,
-            justify="left",
-            anchor="w",
-        )
-        self.artifact_link.pack(anchor="w", pady=(2, 8))
-        self.artifact_link.bind("<Button-1>", lambda _e: self.open_artifact_folder())
-        self.agent_residue_label = tk.Label(
-            self.output_panel,
-            text="",
-            fg=BLUE2,
-            bg=BG,
-            font=("Consolas", 11, "bold"),
-            justify="left",
-            anchor="w",
-        )
-        self.agent_residue_label.pack(anchor="w", pady=(0, 8))
-        self.agent_residue_label.pack_forget()
         self.agent_residue_state = None
 
-        self.log_column = tk.Frame(residue_row, bg=BG)
-        self.log_column.pack(side="right", anchor="n", padx=(14, 0))
+        # Main content
+        self.url_entry = self.main_content.url_entry
+        self.submit_btn = self.main_content.submit_btn
+        self.submit_lbl = self.main_content.submit_lbl
+        self.snowflake_canvas = self.main_content.snowflake_canvas
+        self.status_indicator_label = self.main_content.status_indicator_label
+        self.status_indicator = self.main_content.status_indicator
+        self.progress_canvas = self.main_content.progress_canvas
+        self.artifact_link = self.main_content.artifact_link
+        self.agent_residue_label = self.main_content.agent_residue_label
+        self.output_panel = self.main_content.output_panel
+        self._placeholder_active = self.main_content._placeholder_active
 
-        self.stream_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.stream_panel.pack(anchor="n", pady=(0, 12))
-        self.stream_panel.configure(width=320, height=150)
-        self.stream_panel.pack_propagate(False)
-        tk.Label(self.stream_panel, text="CMD STREAM", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
-            anchor="w", padx=10, pady=(8, 4)
-        )
-        self.stream_text = tk.Text(
-            self.stream_panel,
-            height=6,
-            width=38,
-            bg="#061729",
-            fg=BLUE2,
-            insertbackground=BLUE2,
-            relief="flat",
-            font=("Consolas", 10),
-            wrap="word",
-        )
-        self.stream_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
-        self.stream_text.configure(state="disabled")
+        # Right sidebar
+        self.stream_text = self.right_sidebar.stream_text
+        self.cmd_text = self.right_sidebar.cmd_text
+        self.thread_text = self.right_sidebar.thread_text
 
-        self.cmd_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.cmd_panel.pack(anchor="n", pady=(0, 12))
-        self.cmd_panel.configure(width=320, height=150)
-        self.cmd_panel.pack_propagate(False)
-        tk.Label(self.cmd_panel, text="CMD TRACE", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
-            anchor="w", padx=10, pady=(8, 4)
-        )
-        self.cmd_text = tk.Text(
-            self.cmd_panel,
-            height=6,
-            width=38,
-            bg="#061729",
-            fg=BLUE2,
-            insertbackground=BLUE2,
-            relief="flat",
-            font=("Consolas", 10),
-            wrap="word",
-        )
-        self.cmd_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
-        self.cmd_text.configure(state="disabled")
+        # Footer
+        self.status_line = self.footer.status_line
+        self.timeline = self.footer.timeline
 
-        self.log_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
-        self.log_panel.pack(anchor="n")
-        self.log_panel.configure(width=320, height=150)
-        self.log_panel.pack_propagate(False)
-        tk.Label(self.log_panel, text="RUN THREAD", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
-            anchor="w", padx=10, pady=(8, 4)
-        )
-        self.thread_text = tk.Text(
-            self.log_panel,
-            height=6,
-            width=38,
-            bg="#061729",
-            fg=BLUE2,
-            insertbackground=BLUE2,
-            relief="flat",
-            font=("Consolas", 10),
-            wrap="word",
-        )
-        self.thread_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
-        self.thread_text.configure(state="disabled")
-
-        timeline_frame = tk.Frame(lower, bg=BG)
-        timeline_frame.pack(anchor="w", pady=(4, 0))
-        self.timeline = ExecutionTimeline(timeline_frame, ("Consolas", 11, "bold"))
-
-        self.status_line = tk.Label(shell, text="Run: waiting", fg=BLUE2, bg=BG, font=("Consolas", 10))
-        self.status_line.pack(side="bottom", anchor="w", padx=20, pady=(6, 10))
-
+        # Stage ladder animator
         self.ladder_animator = StageLadderAnimator(
             self,
             PHASES,
@@ -437,7 +377,153 @@ class IceCrawlerUI(tk.Tk):
         self.ladder_animator.reset()
         self.ladder_animator.tick()
 
+    # ─────────────────────────────────────────────────────────
+    # Collapse/expand controllers
+    # ─────────────────────────────────────────────────────────
+    def _toggle_left(self):
+        if self._left_collapsed:
+            self._expand_left()
+        else:
+            self._collapse_left()
 
+    def _collapse_left(self):
+        try:
+            self._left_saved_width = self.hpane.sash_coord(0)[0]
+        except Exception:
+            self._left_saved_width = LEFT_WIDTH
+        self._left_collapsed = True
+        self.left_sidebar.pack_forget()
+        self._left_toggle.delete("glyph")
+        self._left_toggle.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u00bb",
+            fill=BLUE2, font=("Consolas", 11, "bold"), tags="glyph",
+        )
+        self.after(10, lambda: self._safe_sash(self.hpane, 0, TOGGLE_SIZE, 0))
+
+    def _expand_left(self):
+        self._left_collapsed = False
+        self.left_sidebar.pack(side="left", fill="both", expand=True)
+        self._left_toggle.delete("glyph")
+        self._left_toggle.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u00ab",
+            fill=BLUE2, font=("Consolas", 11, "bold"), tags="glyph",
+        )
+        self.after(10, lambda: self._safe_sash(self.hpane, 0, self._left_saved_width, 0))
+
+    def _toggle_right(self):
+        if self._right_collapsed:
+            self._expand_right()
+        else:
+            self._collapse_right()
+
+    def _collapse_right(self):
+        try:
+            w = self.winfo_width()
+            self._right_saved_width = w - self.hpane.sash_coord(1)[0]
+        except Exception:
+            self._right_saved_width = RIGHT_WIDTH
+        self._right_collapsed = True
+        self.right_sidebar.pack_forget()
+        self._right_toggle.delete("glyph")
+        self._right_toggle.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u00ab",
+            fill=BLUE2, font=("Consolas", 11, "bold"), tags="glyph",
+        )
+        self.after(10, lambda: self._safe_sash(
+            self.hpane, 1, self.winfo_width() - TOGGLE_SIZE, 0
+        ))
+
+    def _expand_right(self):
+        self._right_collapsed = False
+        self.right_sidebar.pack(side="right", fill="both", expand=True)
+        self._right_toggle.delete("glyph")
+        self._right_toggle.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u00bb",
+            fill=BLUE2, font=("Consolas", 11, "bold"), tags="glyph",
+        )
+        self.after(10, lambda: self._safe_sash(
+            self.hpane, 1, self.winfo_width() - self._right_saved_width, 0
+        ))
+
+    def _toggle_terminal(self):
+        if self._terminal_collapsed:
+            self._expand_terminal()
+        else:
+            self._collapse_terminal()
+
+    def _collapse_terminal(self):
+        try:
+            total_h = self.vpane.winfo_height()
+            sash_y = self.vpane.sash_coord(0)[1]
+            self._terminal_saved_height = total_h - sash_y
+        except Exception:
+            self._terminal_saved_height = TERMINAL_HEIGHT
+        self._terminal_collapsed = True
+        self.terminal_panel.notebook.pack_forget()
+        self.terminal_panel.toggle_btn.delete("all")
+        self.terminal_panel.toggle_btn.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u25b2",
+            fill=BLUE2, font=("Consolas", 10, "bold"),
+        )
+        self.after(10, lambda: self._safe_sash(
+            self.vpane, 0, 0, self.vpane.winfo_height() - 28
+        ))
+
+    def _expand_terminal(self):
+        self._terminal_collapsed = False
+        self.terminal_panel.notebook.pack(fill="both", expand=True)
+        self.terminal_panel.toggle_btn.delete("all")
+        self.terminal_panel.toggle_btn.create_text(
+            TOGGLE_SIZE // 2, TOGGLE_SIZE // 2, text="\u25bc",
+            fill=BLUE2, font=("Consolas", 10, "bold"),
+        )
+        self.after(10, lambda: self._safe_sash(
+            self.vpane, 0, 0,
+            self.vpane.winfo_height() - self._terminal_saved_height,
+        ))
+
+    def _safe_sash(self, pane, index, x, y):
+        """Set sash position, silently ignoring errors."""
+        try:
+            pane.sash_place(index, x, y)
+        except Exception:
+            pass
+
+    # ─────────────────────────────────────────────────────────
+    # Terminal mirroring
+    # ─────────────────────────────────────────────────────────
+    def _update_terminal(self):
+        """Mirror CMD STREAM to terminal Output tab, events to Events tab."""
+        # Output tab: mirror stream_text content
+        if self.run_path:
+            stream_path = os.path.join(self.run_path, "ui_cmd_stream.log")
+            content = read_text(stream_path)
+            lines = [ln for ln in content.splitlines() if ln.strip()]
+            tail = lines[-30:] if len(lines) > 30 else lines
+            display = "\n".join(tail)
+        else:
+            display = ""
+        if getattr(self, "_terminal_output_cache", None) != display:
+            self._terminal_output_cache = display
+            self.terminal_panel.output_text.configure(state="normal")
+            self.terminal_panel.output_text.delete("1.0", "end")
+            self.terminal_panel.output_text.insert("end", display)
+            self.terminal_panel.output_text.see("end")
+            self.terminal_panel.output_text.configure(state="disabled")
+
+        # Events tab: raw events
+        events = read_events(self.run_path) if self.run_path else ""
+        if getattr(self, "_terminal_events_cache", None) != events:
+            self._terminal_events_cache = events
+            self.terminal_panel.events_text.configure(state="normal")
+            self.terminal_panel.events_text.delete("1.0", "end")
+            self.terminal_panel.events_text.insert("end", events)
+            self.terminal_panel.events_text.see("end")
+            self.terminal_panel.events_text.configure(state="disabled")
+
+    # ─────────────────────────────────────────────────────────
+    # All original methods below — UNCHANGED bodies
+    # ─────────────────────────────────────────────────────────
 
     def _queue_reveal(self, phase: str):
         if self.reveal_started.get(phase):
@@ -511,14 +597,14 @@ class IceCrawlerUI(tk.Tk):
             self.after(400, self._animate)
             return
         if self.running or self.has_activity:
-            glow = "◉" if int(time.time() * 6) % 2 == 0 else "○"
+            glow = "\u25c9" if int(time.time() * 6) % 2 == 0 else "\u25cb"
             for p in PHASES:
                 if not self.phase_truth[p]:
                     self._phase_dots[p].configure(text=glow)
         else:
             for p in PHASES:
                 if not self.phase_truth[p]:
-                    self._phase_dots[p].configure(text="○")
+                    self._phase_dots[p].configure(text="\u25cb")
 
         if self.running:
             current = self.submit_lbl.cget("fg")
@@ -646,51 +732,12 @@ class IceCrawlerUI(tk.Tk):
             if agent_state == "ok":
                 self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
                 self.agent_state_frame.configure(highlightbackground=BLUE2)
-                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
+                self.agent_residue_label.configure(text="[ Agents OK \u2014 agentic/AGENTS_OK.json ]", fg=BLUE2)
                 self.agent_residue_label.pack(anchor="w", pady=(0, 8))
             elif agent_state == "fail":
                 self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
                 self.agent_state_frame.configure(highlightbackground=ORANGE2)
-                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
-                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
-            elif agent_state == "active":
-                self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
-                self.agent_state_frame.configure(highlightbackground=BLUE2)
-                self.agent_residue_label.pack_forget()
-            else:
-                self.agent_residue_label.pack_forget()
-
-        agentic_dir = os.path.join(self.run_path, "agentic")
-        marker_ok = os.path.join(agentic_dir, "AGENTS_OK.json")
-        marker_fail = os.path.join(agentic_dir, "AGENTS_FAIL.json")
-        marker_active = os.path.join(agentic_dir, "AGENTS_ACTIVE.json")
-        agent_state = None
-        if os.path.exists(marker_fail):
-            agent_state = "fail"
-        elif os.path.exists(marker_ok):
-            agent_state = "ok"
-        elif os.path.exists(marker_active):
-            agent_state = "active"
-
-        if agent_state and (not self.agent_visible):
-            self.agent_status_row.pack(anchor="w", pady=(2, 8))
-            self.agent_visible = True
-        elif (not agent_state) and self.agent_visible:
-            self.agent_status_row.pack_forget()
-            self.agent_visible = False
-            self.agent_state = None
-
-        if agent_state != self.agent_state:
-            self.agent_state = agent_state
-            if agent_state == "ok":
-                self.agent_state_label.configure(text="AGENTS: OK", fg=BLUE2)
-                self.agent_state_frame.configure(highlightbackground=BLUE2)
-                self.agent_residue_label.configure(text="[ Agents OK — agentic/AGENTS_OK.json ]", fg=BLUE2)
-                self.agent_residue_label.pack(anchor="w", pady=(0, 8))
-            elif agent_state == "fail":
-                self.agent_state_label.configure(text="AGENTS: FAILED", fg=ORANGE2)
-                self.agent_state_frame.configure(highlightbackground=ORANGE2)
-                self.agent_residue_label.configure(text="[ Agents FAILED — agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
+                self.agent_residue_label.configure(text="[ Agents FAILED \u2014 agentic/AGENTS_FAIL.json ]", fg=ORANGE2)
                 self.agent_residue_label.pack(anchor="w", pady=(0, 8))
             elif agent_state == "active":
                 self.agent_state_label.configure(text="AGENTS: RUNNING...", fg=BLUE2)
@@ -703,7 +750,7 @@ class IceCrawlerUI(tk.Tk):
         self.phase_truth = {p: False for p in PHASES}
         for p in PHASES:
             self.phase_labels[p].configure(fg=BLUE2)
-            self._phase_dots[p].configure(text="○", fg=BLUE2)
+            self._phase_dots[p].configure(text="\u25cb", fg=BLUE2)
             if hasattr(self, "phase_reveals") and p in self.phase_reveals:
                 self.phase_reveals[p].configure(text="", fg=BLUE2)
             if hasattr(self, "phase_checks") and p in self.phase_checks:
@@ -904,6 +951,7 @@ class IceCrawlerUI(tk.Tk):
             pass
 
         self._refresh_from_fossils(force=False)
+        self._update_terminal()
         self.after(300, self._pump)
 
 

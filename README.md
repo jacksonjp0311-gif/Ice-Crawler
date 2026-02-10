@@ -50,6 +50,44 @@ Recent enhancement: Glacier now uses a deterministic **triadic-balanced selector
 
 Optional extension: Φ-extremal agentic hooks can partition Frost refs and Crystal artifacts into bounded agent tasks for multi-agent extraction (opt-out via environment flags).
 
+## IDE-style UI layout
+
+The UI uses an IDE-inspired layout with collapsible panels built entirely with Tkinter + ttk (zero additional dependencies).
+
+```text
++------+-----------------------------------+--------+
+| LEFT |         MAIN CONTENT              | RIGHT  |
+| SIDE |  Title / URL Input / Submit       | SIDE   |
+| BAR  |  Progress Bar                     | BAR    |
+|      |  Output Residue / Artifacts       |        |
+| [<<] |                                   | [>>]   |
+| Phase|                                   | CMD    |
+| Tree |                                   | Stream |
+| Agent|                                   | CMD    |
+| Info |                                   | Trace  |
+|      |                                   | Thread |
++------+-----------------------------------+--------+
+| TERMINAL (tabbed: Output | Events)          [^/v] |
++----------------------------------------------------+
+| FOOTER: Run path | Frost | Glacier | Crystal | Res |
++----------------------------------------------------+
+```
+
+- **Left sidebar** — Phase ladder (Frost/Glacier/Crystal/Residue), agent status, handoff badge.
+- **Main content** — Title, URL entry, submit button, progress bar, output residue & artifact link.
+- **Right sidebar** — CMD Stream, CMD Trace, and Run Thread log panels.
+- **Terminal** — Tabbed bottom panel (Output mirrors live CMD stream, Events shows raw `ui_events.jsonl`).
+- **Footer** — Run path status line and horizontal execution timeline milestones.
+
+### Panel controls
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Toggle left sidebar | `Ctrl+B` | Collapse/expand phase ladder panel |
+| Toggle terminal | `Ctrl+J` | Collapse/expand bottom terminal |
+| Toggle right sidebar | `Ctrl+Shift+B` | Collapse/expand log panels |
+| Drag sashes | Mouse | All panel dividers are draggable PanedWindow sashes |
+
 ## Repository layout
 
 - `engine/` — phase engines and orchestrator.
@@ -70,7 +108,7 @@ Quick directory guide for top-level project folders:
 - `ui/`
   - **Engine role:** Observational UI surface only.
   - **How it works:** Reads run fossils (`ui_events.jsonl`, manifests, handoff pointers), renders ladder state, never executes git.
-  - **Mini directory:** `ice_ui.py`, `animations/`, `design/`, `assets/`, `engine_registry.json`.
+  - **Mini directory:** `ice_ui.py` (app shell), `panels/` (IDE panel components), `animations/`, `design/`, `hooks/`, `assets/`.
 
 - `agentics/`
   - **Engine role:** Optional hook layer for task partitioning around Frost and Crystal outputs.
@@ -99,31 +137,29 @@ Quick directory guide for top-level project folders:
 
 ## Requirements
 
-- Python 3.10+
-- Git CLI available on PATH
+- **Python 3.10+** (tested on 3.10 through 3.14)
+- **Tkinter** (included with standard Python on most platforms; see Troubleshooting if missing)
+- **Git CLI** available on PATH
 - Network access for remote repository telemetry/clone
 
-## Clone this repository
+No third-party packages are required. The UI uses only the Python standard library (Tkinter + ttk).
 
-### Bash (Linux/macOS)
+## Quick start
+
+### 1. Clone
 
 ```bash
 git clone https://github.com/<your-org>/Ice-Crawler.git
 cd Ice-Crawler
 ```
 
-### PowerShell (Windows)
-
 ```powershell
+# PowerShell
 git clone https://github.com/<your-org>/Ice-Crawler.git
 Set-Location .\Ice-Crawler
 ```
 
-## Launch from repository root (single canonical entrypoint)
-
-### Single entrypoint (all platforms)
-
-Use exactly one launcher: **`icecrawler.py`** at the repository root.
+### 2. Launch the UI
 
 ```bash
 python icecrawler.py
@@ -133,7 +169,25 @@ python icecrawler.py
 python .\icecrawler.py
 ```
 
-Behavior:
+This opens the IDE-style window. Paste a GitHub repo URL (or any git-accessible URL) into the input bar and click the glowing triangle **PRESS TO SUBMIT TO ICE CRAWLER** control.
+
+### 3. Watch the pipeline run
+
+- The **left sidebar** phase ladder lights up as each stage completes (Frost, Glacier, Crystal, Residue).
+- The **right sidebar** log panels show live CMD stream, CMD trace, and run thread output.
+- The **bottom terminal** mirrors the live output stream and raw events.
+- The **footer** status bar shows the run path and execution timeline milestones.
+- When the run completes, a **handoff complete** badge appears with a link to the output artifacts.
+
+### 4. Explore panel controls
+
+- **Collapse/expand** sidebars and terminal using the chevron toggle buttons or keyboard shortcuts.
+- **Drag** any panel divider (sash) to resize.
+- **Ctrl+B** toggles the left sidebar, **Ctrl+J** toggles the terminal, **Ctrl+Shift+B** toggles the right sidebar.
+
+## Launch options
+
+Use exactly one launcher: **`icecrawler.py`** at the repository root.
 
 - Runs the UI through your current Python interpreter (default/recommended).
 - Optional EXE mode only when explicitly requested: `python icecrawler.py --prefer-exe` (Windows).
@@ -243,6 +297,7 @@ Inside each run directory (`state/runs/<run>/`):
 
 - **`ModuleNotFoundError` when running orchestrator:** run as module from repo root using `python -m engine.orchestrator ...`.
 - **UI run appears stuck:** inspect `<run>/ui_stdout.txt` and `<run>/ui_rc.txt` for subprocess diagnostics.
+- **Tkinter not found (`ModuleNotFoundError: No module named 'tkinter'`):** On some Linux distros Tkinter is a separate package. Install it: `sudo apt install python3-tk` (Debian/Ubuntu) or `sudo dnf install python3-tkinter` (Fedora). On macOS with Homebrew Python: `brew install python-tk`.
 - **Tkinter `no $DISPLAY` error (Linux headless):** this is an environment limitation; run with a desktop session or X server.
 - **`ordinal ... could not be located` on Windows EXE:** your EXE runtime is incompatible; run `python icecrawler.py` immediately, then rebuild local EXE via `scripts/build/build_windows_exe.ps1` if needed.
 - **Run folder won’t open:** ensure desktop opener is available (`explorer`, `open`, or `xdg-open`).
