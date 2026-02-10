@@ -228,7 +228,9 @@ Inside each run directory (`state/runs/<run>/`):
 - `artifact_hashes.json`
 - `artifact/` (single crystallized root preserving repository-relative paths)
 - `crystal_report.md`
+- `crystal_copy_report.json` (picked vs crystallized audit; skipped reasons)
 - `residue_truth.json`
+- `ui_cmd_stream.log` (live orchestrator stdout captured by UI hook)
 - `ai_handoff/` (+ `ai_handoff_path.txt`)
 
 ## Formal docs in this repo

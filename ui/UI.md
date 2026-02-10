@@ -7,6 +7,7 @@ The UI reads only fossil artifacts emitted by the engine layer:
 - `ui_events.jsonl`
 - `ai_handoff_path.txt`
 - `ui_stdout.txt` / `ui_rc.txt` (debug)
+- `ui_cmd_stream.log` (live stdout stream persisted for operator review)
 
 All visual state is derived from those events and files.
 
@@ -37,3 +38,7 @@ A blue "RUN THREAD" panel appears to the right of the output residue section. It
 ## Command trace box
 
 A blue "CMD TRACE" panel appears above the run thread. It tails `run_cmds.jsonl` to show the commands executed by engines/agent hooks.
+
+## CMD stream box
+
+A blue "CMD STREAM" panel appears above command trace/thread boxes and is fed by `ui/hooks/cmd_stream.py` from submit until run exit. The stream remains in-panel after completion so no separate pop-up console is required for normal analysis.
