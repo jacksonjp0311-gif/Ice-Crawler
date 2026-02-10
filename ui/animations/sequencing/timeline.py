@@ -2,13 +2,17 @@
 
 
 class ExecutionTimeline:
-    def __init__(self, container, font):
+    def __init__(self, container, font, orient="vertical"):
         self.container = container
         self.font = font
+        self.orient = orient
         self.labels = []
         for _ in range(4):
             lbl = self._make_label("")
-            lbl.pack(anchor="w")
+            if orient == "horizontal":
+                lbl.pack(side="left", padx=(0, 8))
+            else:
+                lbl.pack(anchor="w")
             self.labels.append(lbl)
         self.reset()
 
