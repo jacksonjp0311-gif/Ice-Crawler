@@ -57,6 +57,46 @@ Optional extension: Φ-extremal agentic hooks can partition Frost refs and Cryst
 - `state/runs/<run_...>/` — per-run fossils and artifacts.
 - `artifact/` — project-level artifact bundle metadata.
 
+
+## Root folder mini map
+
+Quick directory guide for top-level project folders:
+
+- `engine/`
+  - **Engine role:** Core run pipeline (Frost telemetry, Glacier selection, Crystal crystallization, residue lock).
+  - **How it works:** `engine/orchestrator.py` executes stages in order, emits `ui_events.jsonl`, and writes run artifacts into `state/runs/<run>/`.
+  - **Mini directory:** `frost.py`, `glacier.py`, `crystal.py`, `orchestrator.py` (+ `_quarantine/` experiments).
+
+- `ui/`
+  - **Engine role:** Observational UI surface only.
+  - **How it works:** Reads run fossils (`ui_events.jsonl`, manifests, handoff pointers), renders ladder state, never executes git.
+  - **Mini directory:** `ice_ui.py`, `animations/`, `design/`, `assets/`, `engine_registry.json`.
+
+- `agentics/`
+  - **Engine role:** Optional hook layer for task partitioning around Frost and Crystal outputs.
+  - **How it works:** Activated by environment flags; reads run outputs and emits bounded agent task bundles in run folders.
+  - **Mini directory:** `hook.py`, `pipeline.py`, `phi_partition.py`, `agent_manifest.py`, `frost_fractal.py`.
+
+- `docs/`
+  - **Engine role:** Architecture and formal constraints.
+  - **How it works:** Captures invariants and design intent for triadic ingestion and optional agentic overlays.
+  - **Mini directory:** `ICE_CRAWLER_ARCHITECTURE_v1_1.md`, `CODEX_777_...md`, `CODEX_PHI_...md`.
+
+- `scripts/`
+  - **Engine role:** Launcher/build convenience wrappers.
+  - **How it works:** Shell/PowerShell wrappers for UI launch and packaging workflows.
+  - **Mini directory:** `launchers/`, `build/`.
+
+- `ledger/`
+  - **Engine role:** Historical run-event append log.
+  - **How it works:** Records selected run checkpoints and completion facts.
+  - **Mini directory:** `ice_crawler_ledger.jsonl`.
+
+- `artifact/`
+  - **Engine role:** Project-level static artifact bundle metadata (not per-run output).
+  - **How it works:** Stores baseline bundle manifest references under source control.
+  - **Mini directory:** `bundles/artifact_manifest.json`.
+
 ## Requirements
 
 - Python 3.10+
@@ -186,6 +226,7 @@ Inside each run directory (`state/runs/<run>/`):
 - `tree_snapshot.txt`
 - `artifact_manifest.json`
 - `artifact_hashes.json`
+- `artifact/` (single crystallized root preserving repository-relative paths)
 - `crystal_report.md`
 - `residue_truth.json`
 - `ai_handoff/` (+ `ai_handoff_path.txt`)

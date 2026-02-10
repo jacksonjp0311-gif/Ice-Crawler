@@ -170,11 +170,14 @@ def main():
             if os.path.getsize(src)/1024.0 > max_kb:
                 continue
 
-            flat=rel.replace("/","_")
-            dst=os.path.join(bundle, flat)
+            # Preserve repository-relative paths inside a single artifact root.
+            # This avoids filename collisions that can occur with flattening
+            # (for example: "a/b_c.py" vs "a_b/c.py").
+            dst=os.path.join(bundle, rel)
+            ensure_dir(os.path.dirname(dst))
             shutil.copy2(src, dst)
 
-            manifest.append({"path":rel,"sha256":sha256_file(dst)})
+            manifest.append({"path":rel,"artifact_rel":rel,"sha256":sha256_file(dst)})
 
         manifest = sorted(manifest, key=lambda x: x["path"])
 
