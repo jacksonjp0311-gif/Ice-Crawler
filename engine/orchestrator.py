@@ -163,26 +163,50 @@ def main():
         ensure_dir(bundle)
 
         manifest=[]
+        skipped_missing=[]
+        skipped_oversize=[]
         for rel in picked:
             src=os.path.join(temp_dir, rel)
             if not os.path.exists(src):
-                continue
-            if os.path.getsize(src)/1024.0 > max_kb:
+                skipped_missing.append(rel)
                 continue
 
-            flat=rel.replace("/","_")
-            dst=os.path.join(bundle, flat)
+            size_kb = os.path.getsize(src)/1024.0
+            if size_kb > max_kb:
+                skipped_oversize.append({"path": rel, "size_kb": round(size_kb, 3)})
+                continue
+
+            # Preserve repository-relative paths inside a single artifact root.
+            # This avoids filename collisions that can occur with flattening
+            # (for example: "a/b_c.py" vs "a_b/c.py").
+            dst=os.path.join(bundle, rel)
+            ensure_dir(os.path.dirname(dst))
             shutil.copy2(src, dst)
 
-            manifest.append({"path":rel,"sha256":sha256_file(dst)})
+            manifest.append({"path":rel,"artifact_rel":rel,"sha256":sha256_file(dst)})
 
         manifest = sorted(manifest, key=lambda x: x["path"])
+        skipped_missing = sorted(set(skipped_missing))
+        skipped_oversize = sorted(skipped_oversize, key=lambda x: x["path"])
 
         with open(os.path.join(state_run,"artifact_manifest.json"),"w",encoding="utf-8") as f:
             json.dump(manifest, f, indent=2)
 
         with open(os.path.join(state_run,"crystal_index.json"),"w",encoding="utf-8") as f:
             json.dump({"ts":utc_now(),"count":len(manifest)}, f, indent=2)
+
+        with open(os.path.join(state_run, "crystal_copy_report.json"), "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "ts": utc_now(),
+                    "picked_count": len(picked),
+                    "crystallized_count": len(manifest),
+                    "skipped_missing": skipped_missing,
+                    "skipped_oversize": skipped_oversize,
+                },
+                f,
+                indent=2,
+            )
 
         crystal_seal(state_run, manifest)
 
@@ -193,6 +217,7 @@ def main():
                     "artifact_manifest.json",
                     "artifact_hashes.json",
                     "crystal_index.json",
+                    "crystal_copy_report.json",
                     "ui_events.jsonl",
                     "ai_handoff_path.txt"
                 ],

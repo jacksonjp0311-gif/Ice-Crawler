@@ -47,6 +47,8 @@ Post-run residue must be empty except explicit retained artifacts:
 ## Determinism contract
 
 For identical `(repo, revision, config)` inputs, output artifacts should remain stable in file set and hash structure.
+- Crystal stores selected files under a **single artifact root** while preserving repository-relative paths to prevent flattening collisions.
+- Crystal emits `crystal_copy_report.json` with deterministic accounting for crystallized files and explicit skip reasons (missing/oversize).
 
 ## Optional agentic hooks (non-invasive)
 

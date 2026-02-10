@@ -24,6 +24,7 @@ from ui.animations import (
     StatusIndicator,
     attach_snowflake,
 )
+from ui.hooks import CommandStreamHook
 
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
@@ -117,7 +118,7 @@ def _status_text_for_path(path: str, max_chars: int = 74) -> str:
     return f"Run: ...{p[-(max_chars-8):]}"
 
 
-def run_orchestrator(repo_url: str, out_run_dir: str):
+def run_orchestrator(repo_url: str, out_run_dir: str, stream_hook: CommandStreamHook | None = None):
     temp_dir = os.path.join(repo_root(), "state", "_temp_repo")
     if is_frozen():
         cmd = [sys.executable, "--orchestrator", repo_url, out_run_dir, "50", "120", temp_dir]
@@ -129,21 +130,31 @@ def run_orchestrator(repo_url: str, out_run_dir: str):
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    p = subprocess.run(
-        cmd,
-        cwd=repo_root(),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        creationflags=creationflags,
-        startupinfo=startupinfo,
-    )
+    if stream_hook is None:
+        p = subprocess.run(
+            cmd,
+            cwd=repo_root(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            creationflags=creationflags,
+            startupinfo=startupinfo,
+        )
+        rc = p.returncode
+        stdout = p.stdout or ""
+    else:
+        rc, stdout = stream_hook.run_subprocess(
+            cmd,
+            cwd=repo_root(),
+            creationflags=creationflags,
+            startupinfo=startupinfo,
+        )
     try:
-        open(os.path.join(out_run_dir, "ui_stdout.txt"), "w", encoding="utf-8").write(p.stdout or "")
-        open(os.path.join(out_run_dir, "ui_rc.txt"), "w", encoding="utf-8").write(str(p.returncode))
+        open(os.path.join(out_run_dir, "ui_stdout.txt"), "w", encoding="utf-8").write(stdout)
+        open(os.path.join(out_run_dir, "ui_rc.txt"), "w", encoding="utf-8").write(str(rc))
     except Exception:
         pass
-    return p.returncode
+    return rc
 
 
 class IceCrawlerUI(tk.Tk):
@@ -167,6 +178,7 @@ class IceCrawlerUI(tk.Tk):
         self.phase_truth = {p: False for p in PHASES}
         self.last_events = ""
         self.run_path = read_latest_run_path()
+        self.stream_hook = None
 
         self._phase_dots = {}
         self._build()
@@ -343,6 +355,27 @@ class IceCrawlerUI(tk.Tk):
 
         self.log_column = tk.Frame(residue_row, bg=BG)
         self.log_column.pack(side="right", anchor="n", padx=(14, 0))
+
+        self.stream_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
+        self.stream_panel.pack(anchor="n", pady=(0, 12))
+        self.stream_panel.configure(width=320, height=150)
+        self.stream_panel.pack_propagate(False)
+        tk.Label(self.stream_panel, text="CMD STREAM", fg=BLUE2, bg=BG, font=("Segoe UI", 11, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 4)
+        )
+        self.stream_text = tk.Text(
+            self.stream_panel,
+            height=6,
+            width=38,
+            bg="#061729",
+            fg=BLUE2,
+            insertbackground=BLUE2,
+            relief="flat",
+            font=("Consolas", 10),
+            wrap="word",
+        )
+        self.stream_text.pack(anchor="w", padx=10, pady=(0, 10), fill="both", expand=True)
+        self.stream_text.configure(state="disabled")
 
         self.cmd_panel = tk.Frame(self.log_column, bg=BG, highlightbackground=BLUE2, highlightthickness=1)
         self.cmd_panel.pack(anchor="n", pady=(0, 12))
@@ -544,6 +577,8 @@ class IceCrawlerUI(tk.Tk):
 
         events = read_events(self.run_path)
         if (not force) and (events == self.last_events):
+            self._update_stream_box()
+            self._update_cmd_box()
             return
 
         self.last_events = events
@@ -564,6 +599,7 @@ class IceCrawlerUI(tk.Tk):
         self.timeline.update(events)
         self.run_complete = "RUN_COMPLETE" in events
         self._update_thread_box(events)
+        self._update_stream_box()
         self._update_cmd_box()
 
         ai_path = read_text(os.path.join(self.run_path, "ai_handoff_path.txt")).strip()
@@ -690,6 +726,7 @@ class IceCrawlerUI(tk.Tk):
         self.artifact_link.configure(text="All that remains...")
         self.timeline.reset()
         self._reset_thread_box()
+        self._reset_stream_box()
         self._reset_cmd_box()
         self.run_complete = False
         self.has_activity = False
@@ -716,6 +753,37 @@ class IceCrawlerUI(tk.Tk):
         self.thread_text.delete("1.0", "end")
         self.thread_text.configure(state="disabled")
         self._thread_cache = ""
+
+    def _update_stream_box(self):
+        if not hasattr(self, "stream_text") or (not self.run_path):
+            return
+        stream_path = os.path.join(self.run_path, "ui_cmd_stream.log")
+        if not os.path.exists(stream_path):
+            if getattr(self, "_stream_cache", None) != "":
+                self._stream_cache = ""
+                self.stream_text.configure(state="normal")
+                self.stream_text.delete("1.0", "end")
+                self.stream_text.configure(state="disabled")
+            return
+        content = read_text(stream_path)
+        lines = [line for line in content.splitlines() if line.strip()]
+        tail = lines[-10:] if len(lines) > 10 else lines
+        display = "\n".join(tail)
+        if getattr(self, "_stream_cache", None) == display:
+            return
+        self._stream_cache = display
+        self.stream_text.configure(state="normal")
+        self.stream_text.delete("1.0", "end")
+        self.stream_text.insert("end", display)
+        self.stream_text.configure(state="disabled")
+
+    def _reset_stream_box(self):
+        if not hasattr(self, "stream_text"):
+            return
+        self.stream_text.configure(state="normal")
+        self.stream_text.delete("1.0", "end")
+        self.stream_text.configure(state="disabled")
+        self._stream_cache = ""
 
     def _update_cmd_box(self):
         if not hasattr(self, "cmd_text"):
@@ -807,12 +875,13 @@ class IceCrawlerUI(tk.Tk):
         run_dir = new_run_dir()
         write_latest_run_path(run_dir)
         self.run_path = run_dir
+        self.stream_hook = CommandStreamHook(run_dir)
         self.last_events = ""
         self._reset_phase_ladder()
 
         def work():
             try:
-                rc = run_orchestrator(repo_url, run_dir)
+                rc = run_orchestrator(repo_url, run_dir, stream_hook=self.stream_hook)
                 self.q.put(("DONE", rc, run_dir))
             except Exception:
                 self.q.put(("ERR", -1, traceback.format_exc()))
@@ -826,17 +895,17 @@ class IceCrawlerUI(tk.Tk):
                 self.running = False
                 self.submit_btn.set_enabled(True)
                 if tag == "ERR":
-                    messagebox.showerror("ICE-CRAWLER", f"Run error:\n\n{payload}")
+                    self.status_line.configure(text=f"Run error captured in UI stream. See traceback: {payload}")
                 elif rc != 0:
-                    messagebox.showerror(
-                        "ICE-CRAWLER",
-                        f"Run failed with exit code {rc}.\nCheck ui_rc.txt/ui_stdout.txt in:\n{payload}",
+                    self.status_line.configure(
+                        text=f"Run failed (rc={rc}). Inspect CMD STREAM and ui_stdout.txt in: {payload}"
                     )
         except queue.Empty:
             pass
 
         self._refresh_from_fossils(force=False)
         self.after(300, self._pump)
+
 
 
 if __name__ == "__main__":

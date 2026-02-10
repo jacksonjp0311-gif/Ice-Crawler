@@ -13,6 +13,7 @@ observational control surface driven by run fossils written to
   folder; the UI renders this path and opens it on click.
 - **Completion banner**: appears when `RUN_COMPLETE` is seen in the
   run event stream.
+- **CMD stream hook**: a right-column `CMD STREAM` panel captures live orchestrator stdout into `ui_cmd_stream.log` and keeps it visible after completion for analysis.
 
 ## Animation hooks
 
