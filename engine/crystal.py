@@ -1,18 +1,20 @@
-﻿import os, hashlib, json
+﻿from engine.roles.crystal_engine import (
+    sha256_file,
+    crystal_crystallize,
+    CrystalConfig
+)
 
-def sha256_file(path: str):
-    h=hashlib.sha256()
-    with open(path,"rb") as f:
-        for chunk in iter(lambda:f.read(1024*1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
+import hashlib, os
 
-def sha256_text(s: str):
-    return hashlib.sha256(s.encode("utf-8")).hexdigest()
+def sha256_text(text:str)->str:
+    if isinstance(text,str):
+        text = text.encode("utf-8",errors="ignore")
+    return hashlib.sha256(text).hexdigest()
 
-def crystal_seal(state_run: str, manifest):
-    with open(os.path.join(state_run,"artifact_hashes.json"),"w",encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-    with open(os.path.join(state_run,"crystal_report.md"),"w",encoding="utf-8") as f:
-        f.write("# Crystal Seal\n\n")
-        f.write(f"- Files: {len(manifest)}\n")
+def crystal_seal(repo_root=".", run_state_dir="state/runs/latest"):
+    print("[CRYSTAL] starting analysis")
+    os.makedirs(run_state_dir, exist_ok=True)
+    cfg = CrystalConfig()
+    result = crystal_crystallize(repo_root, run_state_dir, cfg)
+    print("[CRYSTAL] done")
+    return result
