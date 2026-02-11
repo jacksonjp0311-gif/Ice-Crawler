@@ -304,6 +304,12 @@ Inside each run directory (`state/runs/<run>/`):
 
 ## License / attribution
 
-Author attribution in architecture docs: **James Paul Jackson**.
+Author attribution in architecture docs: **James Paul Jackson**, The Digital Alchemist -on X: @unifiedenergy11
+
+UI Co-Author: lalo on X: @lalopenguin --**Solid Contribution and Design upgrade looks Amazing** --From The Digital Alchemist-- 
+
+OPEN SOURCE-LET THE WILL OF NATURE BE YOUR GUIDING LIGHT-
 
 If you need a formal OSS license, add one explicitly (for example `MIT`, `Apache-2.0`, etc.).
+
+--END OF TRANSMISSION--
