@@ -135,6 +135,22 @@ Quick directory guide for top-level project folders:
   - **How it works:** Stores baseline bundle manifest references under source control.
   - **Mini directory:** `bundles/artifact_manifest.json`.
 
+## Folder Mini-README system
+
+Every top-level project folder now includes its own local `README.md` (mini README) so each section can be understood in-place without scanning the entire repository first.
+
+### How to use mini READMEs (Human workflow)
+- Start in the folder you need to modify (`engine/`, `docs/`, `scripts/`, etc.).
+- Read that folder’s `README.md` first for scope, sequence-of-events, and cross-links.
+- Follow links/filenames listed in the mini directory to jump directly to relevant files.
+
+### How to use mini READMEs (AI workflow)
+- Treat each folder `README.md` as the local contract before editing files in that scope.
+- Use the mini directory and sequence to preserve deterministic execution order and truth-surface invariants.
+- Use interlinking notes to avoid introducing out-of-scope state or bypassing orchestrator/event contracts.
+
+Top-level mini README coverage includes: `AI_EXPORT/`, `artifact/`, `docs/`, `engine/`, `ledger/`, and `scripts/` (with existing `agentics/` and `ui/` READMEs retained).
+
 ## Requirements
 
 - **Python 3.10+** (tested on 3.10 through 3.14)
