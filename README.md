@@ -187,6 +187,8 @@ python .\icecrawler.py
 
 This opens the IDE-style window. Paste a GitHub repo URL (or any git-accessible URL) into the input bar and click the glowing triangle **PRESS TO SUBMIT TO ICE CRAWLER** control.
 
+If you paste a GitHub browse URL (for example `.../tree/<branch>/...` or `.../blob/<branch>/...`), ICE-CRAWLER normalizes it to a cloneable repository URL automatically before execution.
+
 ### 3. Watch the pipeline run
 
 - The **left sidebar** phase ladder lights up as each stage completes (Frost, Glacier, Crystal, Residue).
