@@ -67,6 +67,9 @@ All panel dividers are draggable sashes.
 - **CMD stream hook**: the right sidebar `CMD STREAM` panel captures live
   orchestrator stdout into `ui_cmd_stream.log` and keeps it visible after
   completion for analysis.
+- **Silent Windows subprocess mode**: orchestrator/git subprocesses are launched
+  with hidden-window flags on Windows to prevent command shell pop-ups while
+  a run is in progress.
 - **Terminal mirroring**: the bottom terminal Output tab mirrors the CMD
   stream in real time; the Events tab shows raw `ui_events.jsonl`.
 
