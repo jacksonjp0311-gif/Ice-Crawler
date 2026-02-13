@@ -137,6 +137,7 @@ def run_orchestrator(repo_url: str, out_run_dir: str, stream_hook: CommandStream
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
     if stream_hook is None:
         p = subprocess.run(
             cmd,

@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import subprocess
+import sys
 from typing import Dict, List, Tuple
 
 from .phi_partition import GOLDEN_RATIO, phi_partition
@@ -11,8 +12,24 @@ def utc_now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _silent_subprocess_kwargs() -> dict:
+    if not sys.platform.startswith("win"):
+        return {}
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 0
+    return {"creationflags": creationflags, "startupinfo": startupinfo}
+
+
 def _run(cmd: List[str]) -> Tuple[int, str]:
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    proc = subprocess.run(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        **_silent_subprocess_kwargs(),
+    )
     return proc.returncode, proc.stdout
 
 

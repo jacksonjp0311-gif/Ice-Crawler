@@ -6,6 +6,7 @@
 - `ICE_CRAWLER_ARCHITECTURE_v1_1.md` — core architecture and execution model.
 - `CODEX_777_TRIADIC_BOUNDARY_EXCESS_v2_0.md` — triadic boundary constraints.
 - `CODEX_PHI_EXTREMAL_CONSTRAINT_AGENTICS_v1_0.md` — optional agentic Φ-extremal constraints.
+- `SYSTEM_EVOLUTION_ROADMAP.md` — staged backend/frontend evolution plan.
 
 ## Sequence of Events
 1. Engine/UI behavior is defined and constrained by these documents.
