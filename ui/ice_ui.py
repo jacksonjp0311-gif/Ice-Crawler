@@ -32,6 +32,7 @@ from ui.panels.main_content import MainContent
 from ui.panels.right_sidebar import RightSidebar
 from ui.panels.terminal_panel import TerminalPanel
 from ui.panels.footer import Footer
+from engine.repo_url import normalize_repository_url
 
 PHASES = ["Frost", "Glacier", "Crystal", "Residue"]
 PLACEHOLDER = "Paste a GitHub URL (recommended) or repo URL..."
@@ -137,6 +138,7 @@ def run_orchestrator(repo_url: str, out_run_dir: str, stream_hook: CommandStream
         creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        startupinfo.wShowWindow = 0
     if stream_hook is None:
         p = subprocess.run(
             cmd,
@@ -912,6 +914,14 @@ class IceCrawlerUI(tk.Tk):
         if (not repo_url) or (repo_url == PLACEHOLDER):
             messagebox.showerror("ICE-CRAWLER", "Repo URL required.")
             return
+
+
+        normalized_repo_url = normalize_repository_url(repo_url)
+        if normalized_repo_url != repo_url:
+            self.url_entry.delete(0, "end")
+            self.url_entry.insert(0, normalized_repo_url)
+            self.status_line.configure(text=f"Normalized repo URL for clone: {normalized_repo_url}")
+        repo_url = normalized_repo_url
 
         if self.running:
             return

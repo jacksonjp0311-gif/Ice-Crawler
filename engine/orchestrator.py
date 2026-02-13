@@ -1,14 +1,9 @@
-﻿import os, sys, json, shutil, subprocess, datetime, time, stat, importlib.util, importlib
+import os, sys, json, shutil, subprocess, datetime, time, stat, importlib.util, importlib
 
 from .frost import frost_telemetry
 from .glacier import glacier_clone, glacier_select, glacier_emit
-print("========== ICE-CRAWLER DEBUG ==========")
-print("Orchestrator starting")
-print("Python path OK")
-print("Loading crystal engine…")
-print("===== CRYSTAL DEBUG =====")
-print("Orchestrator running")
 from .crystal import sha256_file, sha256_text, crystal_seal
+from .repo_url import normalize_repository_url
 
 def utc_now():
     return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat()
@@ -16,8 +11,25 @@ def utc_now():
 def ensure_dir(p):
     os.makedirs(p, exist_ok=True)
 
+def _silent_subprocess_kwargs() -> dict:
+    if not sys.platform.startswith("win"):
+        return {}
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo.wShowWindow = 0
+    return {"creationflags": creationflags, "startupinfo": startupinfo}
+
+
 def run(cmd, cwd=None):
-    p=subprocess.run(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    p = subprocess.run(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        **_silent_subprocess_kwargs(),
+    )
     return p.returncode, p.stdout
 
 def _on_rm_error(func, path, exc_info):
@@ -110,22 +122,10 @@ def ai_handoff_emit(state_run: str, manifest, repo_url: str, repo_head: str):
     emit_ui(state_run, "AI_HANDOFF_READY", {"ai_handoff": ai_dir, "root_seal": root_seal})
 
 
-# ===== AUTO_ARGS_PATCH =====
-import sys
-if len(sys.argv) < 6:
-    print("[PATCH] Injecting default orchestrator args")
-    sys.argv = [
-        sys.argv[0],
-        ".",                    # repo
-        "state/runs/test_run",  # state_run
-        "600",                  # max_files
-        "256",                  # max_kb
-        "state/tmp"             # temp_dir
-    ]
-# ===========================
 
 def main():
-    repo      = sys.argv[1]
+    repo_raw  = sys.argv[1]
+    repo      = normalize_repository_url(repo_raw)
     state_run = sys.argv[2]
     max_files = int(sys.argv[3])
     max_kb    = float(sys.argv[4])
@@ -134,11 +134,13 @@ def main():
     ensure_dir(state_run)
     residue_path = os.path.join(state_run,"residue_truth.json")
 
-    emit_ui(state_run, "RUN_BEGIN", {"repo": repo})
+    emit_ui(state_run, "RUN_BEGIN", {"repo": repo, "repo_input": repo_raw})
     agentic = agentics_hook()
     agentic_ran = False
 
     # Frost: telemetry-only
+    if repo != repo_raw:
+        emit_ui(state_run, "REPO_URL_NORMALIZED", {"input": repo_raw, "normalized": repo})
     emit_ui(state_run, "FROST_PENDING")
     emit_cmd(state_run, ["git", "ls-remote", repo, "HEAD"], note="frost_telemetry")
     frost = frost_telemetry(repo)
@@ -168,7 +170,11 @@ def main():
         emit_ui(state_run, "GLACIER_PENDING")
         emit_ui(state_run, "UI_EVENT:GLACIER_PENDING")
         emit_cmd(state_run, ["git", "clone", "--depth=1", "--single-branch", repo, temp_dir], note="glacier_clone")
-        glacier_clone(repo, temp_dir)
+        try:
+            glacier_clone(repo, temp_dir)
+        except Exception as exc:
+            emit_ui(state_run, "GLACIER_ERROR", {"error": str(exc), "repo": repo})
+            raise
 
         emit_cmd(state_run, ["git", "-C", temp_dir, "ls-files"], note="glacier_ls_files")
         rc, out = run(["git","-C",temp_dir,"ls-files"])
@@ -267,6 +273,9 @@ def main():
         elif agentic is not None and agentic_ran:
             agentic.mark_agents_ok(state_run, {"stage": "frost"})
 
+    except Exception as exc:
+        emit_ui(state_run, "RUN_FAILED", {"error": str(exc)})
+        raise
     finally:
         purge_ok = purge_dir_strict(temp_dir)
         rho = "empty" if (not os.path.exists(temp_dir)) else "violation"
